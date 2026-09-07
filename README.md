@@ -252,7 +252,7 @@ make demo        # the judged capability, live, no key
 make bench       # deterministic p50/p95 over the captured tape
 make bench-live  # p50/p95 over the real keyless fetch
 make site        # re-render the landing page, the deck and JUDGE.md from docs/proof/*.json
-python3 scripts/qa_site.py   # 138 measured gates on the web surfaces (needs playwright + pillow)
+python3 scripts/qa_site.py   # 227 measured gates on the web surfaces (needs playwright + pillow)
 make check       # refuse to ship a placeholder, or a page that drifted from its receipts
 make ci          # lint + test + audit + check
 ```
@@ -281,9 +281,11 @@ be typed in by hand, none can be a placeholder, and none can drift from the run 
 the landing page and the judge guide cannot disagree, because they are the same render.
 
 **The web surfaces are measured, not eyeballed.** `scripts/qa_site.py` drives both pages in headless
-Chromium and runs 138 gates: no horizontal overflow at 375 / 768 / 1440, every link and image
-resolves, a page height budget on phones, every text node at or above WCAG AA contrast (minimum
-5.65:1, gated against regression), every interactive element proven to change on hover by
+Chromium and runs 227 gates: no horizontal overflow at 375 / 768 / 1440, every link and image
+resolves, a page height budget on phones, every text node — SVG text included — at or above WCAG AA contrast as actually painted, with
+opacity flattened onto the background (minimum 5.65:1, gated against regression), the social card
+measured from its own PNG header and description lengths counted, heading levels, prose-link
+underlines and table headers checked, every interactive element proven to change on hover by
 screenshot byte-diff, all eleven slides reachable by keyboard and inside the stage, the page
 rendering with every external request blocked, `prefers-reduced-motion` leaving zero running
 animations, and the animation itself sampled with the clock paused — the staged split must hold
@@ -302,7 +304,7 @@ elephant/
 │   ├── bench.py                      p50/p95, network and aggregation timed apart
 │   ├── seed.py                       capture a tape for replay (NOT the demo path)
 │   ├── render_site.py                renders site/ and JUDGE.md from docs/proof/*.json — no hand-typed numbers
-│   ├── qa_site.py                    138 measured gates on the two web surfaces (Playwright)
+│   ├── qa_site.py                    227 measured gates on the two web surfaces (Playwright)
 │   ├── site_templates/               landing.html, deck.html, JUDGE.md — {{token}} slots, fail if unfilled
 │   └── check_submission_readiness.py placeholder scanner
 ├── tests/

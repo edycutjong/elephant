@@ -7,12 +7,22 @@
 What it checks, per surface (site/index.html and site/pitch/index.html):
 
 - placeholders: none of the tokens that quietly survive into a submission
+- the card: meta description 50–160 chars, og/twitter descriptions <= 125, og:site_name,
+  summary_large_image, an author and a creator handle, and an og:image that is a local PNG
+  of exactly 1200x630 under 1 MB whose declared width/height match its header and whose
+  ?v= cache-buster is the hash of its bytes
 - network: the only external request is Google Fonts; the page renders with every
   external request blocked
 - layout: no horizontal overflow at 375 / 768 / 1440; every anchor and local link resolves;
   every image loads; no JS errors; the mobile height is under budget
+- structure: heading levels never skip; a link inside running text is underlined, not told
+  apart by hue alone; every data cell in every table has a header on some axis
 - the fold at 1280x720: one h1, one to three CTAs, a visual, at most 40 words
-- contrast: every text node >= 4.5:1 (>= 3:1 for large text), minimum reported and gated
+- contrast: every text node >= 4.5:1 (>= 3:1 for large text), minimum reported and gated.
+  The colour measured is the one painted: the declared colour flattened through every
+  ancestor's opacity onto the background beneath it. SVG text is measured too, against the
+  fill of the shape under it. Every animation is finished first, so no half-faded state is
+  ever the one measured
 - the deck: all slides reachable by ArrowRight, none overflow the 1920x1080 stage,
   ESC opens the overview, P shows the notes
 - prefers-reduced-motion: zero running animations, every reveal visible, the split rows
@@ -32,9 +42,11 @@ What it checks, per surface (site/index.html and site/pitch/index.html):
   sibling asset work: a loop that pumps twice or snaps at the seam contradicts its own story.
 """
 
+import hashlib
 import io
 import json
 import re
+import struct
 import sys
 from pathlib import Path
 from urllib.parse import urlparse
@@ -46,6 +58,10 @@ from playwright.sync_api import sync_playwright
 BUILD = Path(__file__).resolve().parents[1]
 SITE = BUILD / "site"
 SITE_HOST = "elephant.edycu.dev"
+OG_SIZE = (1200, 630)  # every platform resamples to this; ship it, do not let them
+OG_MAX_BYTES = 1_048_576
+# values a scaffold leaves behind in the author field; the real name is asserted by a human
+SCAFFOLD_AUTHORS = {"", "next.js", "vercel", "create-react-app", "lovable", "v0", "bolt"}
 MOBILE_HEIGHT_BUDGET = 9000  # css px at 375 wide; the page measured 12,707 before condensing
 CONTRAST_FLOOR = 5.6  # the minimum measured before this harness existed; do not regress it
 FAIL = []
@@ -75,26 +91,82 @@ def contrast(a, b):
 
 CONTRAST_JS = """
 () => {
-  function parse(c){ const m = c.match(/rgba?\\(([^)]+)\\)/); if(!m) return null;
-    const p = m[1].split(',').map(x=>parseFloat(x)); return {r:p[0],g:p[1],b:p[2],a:p.length>3?p[3]:1}; }
+  const SVG = 'http://www.w3.org/2000/svg';
+  function parse(c){ const m = (c || '').match(/rgba?\\(([^)]+)\\)/); if(!m) return null;
+    const p = m[1].split(/[\\s,\\/]+/).map(x=>parseFloat(x)); return {r:p[0],g:p[1],b:p[2],a:p.length>3?p[3]:1}; }
+  const mix = (fg, bg, a) => fg.map((v, i) => Math.round(v * a + bg[i] * (1 - a)));
+  // opacity is inherited by compositing: the painted colour is the declared colour flattened
+  // through every ancestor's opacity (and the colour's own alpha) onto what lies beneath
+  function alphaOf(el){ let a = 1; for (let e = el; e && e.nodeType === 1; e = e.parentElement) a *= parseFloat(getComputedStyle(e).opacity); return a; }
   function bgOf(el){ let e = el; while (e) { const c = parse(getComputedStyle(e).backgroundColor);
     if (c && c.a > 0.85) return [c.r,c.g,c.b]; e = e.parentElement; } return [11,14,20]; }
+  // svg text sits on whatever shapes of the same drawing lie under its centre, painted in
+  // document order; a shape with no fill or zero alpha contributes nothing
+  function svgBgOf(el){ let bg = bgOf(el); const svg = el.ownerSVGElement; if (!svg) return bg;
+    const b = el.getBoundingClientRect(); const cx = b.left + b.width / 2, cy = b.top + b.height / 2;
+    svg.querySelectorAll('rect,circle,ellipse,path,polygon').forEach(s => {
+      if (s === el || s.contains(el)) return;
+      const r = s.getBoundingClientRect(); if (!(cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom)) return;
+      const cs = getComputedStyle(s); if (cs.fill === 'none' || cs.display === 'none' || cs.visibility === 'hidden') return;
+      const f = parse(cs.fill); if (!f) return;
+      const a = f.a * parseFloat(cs.fillOpacity) * alphaOf(s) / alphaOf(svg); if (a <= 0) return;
+      bg = mix([f.r, f.g, f.b], bg, a); });
+    return bg; }
   const out = []; const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let node;
   while ((node = walker.nextNode())) {
     const t = node.textContent.trim(); if (!t || t.length < 2) continue;
     const el = node.parentElement; if (!el) continue;
-    if (el.closest('script,style,aside.speaker-notes,#notes,#overview,svg')) continue;
+    if (el.closest('script,style,aside.speaker-notes,#notes,#overview')) continue;
     const cs = getComputedStyle(el);
-    if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) continue;
+    if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+    const alpha = alphaOf(el); if (alpha === 0) continue;
     const r = el.getBoundingClientRect(); if (r.width === 0 || r.height === 0) continue;
-    const c = parse(cs.color); if (!c) continue;
+    const inSvg = el.namespaceURI === SVG;
+    const c = parse(inSvg ? cs.fill : cs.color); if (!c || (inSvg && cs.fill === 'none')) continue;
+    const bg = inSvg ? svgBgOf(el) : bgOf(el);
+    const a = c.a * alpha * (inSvg ? parseFloat(cs.fillOpacity) : 1);
     const size = parseFloat(cs.fontSize); const weight = parseInt(cs.fontWeight) || 400;
     const large = size >= 24 || (size >= 18.66 && weight >= 700);
-    out.push({text: t.slice(0,40), fg:[c.r,c.g,c.b], bg: bgOf(el), large,
+    out.push({text: t.slice(0,40), fg: mix([c.r,c.g,c.b], bg, a), bg, large, alpha: +a.toFixed(3),
       tag: el.tagName.toLowerCase() + (typeof el.className === 'string' && el.className ? '.' + el.className.split(' ')[0] : '')});
   }
   return out;
 }
+"""
+
+# settle every transition and animation (reveals, the split, the deck stage, the map's pops)
+# so the state measured is the one the page rests in, never a frame of a fade
+SETTLE_JS = """
+() => { document.querySelectorAll('.reveal').forEach(e => e.classList.add('in'));
+  const s = document.querySelector('svg.split'); if (s) s.classList.add('go');
+  let n = 0; document.getAnimations().forEach(a => { try { a.finish(); n++; } catch (e) {} }); return n; }
+"""
+
+HEADINGS_JS = """
+() => [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')].map(h => ({level: +h.tagName[1], text: h.textContent.trim().slice(0, 40)}))
+"""
+
+# a link with text of its own on either side is "in a text block": hue alone cannot carry it
+PROSE_LINKS_JS = """
+() => [...document.querySelectorAll('a[href]')].filter(a => {
+    const own = [...a.parentElement.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim()).length;
+    return own > 0 && a.textContent.trim(); })
+  .map(a => ({text: a.textContent.trim().slice(0, 40), underline: getComputedStyle(a).textDecorationLine.includes('underline'),
+    where: a.parentElement.tagName.toLowerCase() + (a.closest('section,footer,header') ? '@' + (a.closest('section,footer,header').id || a.closest('section,footer,header').tagName.toLowerCase()) : '')}));
+"""
+
+# every non-empty data cell needs a header on some axis: a th in its own row, or a non-empty
+# th at its column in the head (colspans are read from the cell's first column)
+TABLES_JS = """
+() => { const out = []; document.querySelectorAll('table').forEach((t, ti) => {
+    const head = t.tHead ? [...t.tHead.rows].flatMap(r => { const cells = []; [...r.cells].forEach(c => { for (let i = 0; i < (c.colSpan || 1); i++) cells.push(c.textContent.trim()); }); return [cells]; }) : [];
+    const cols = head.length ? head[0] : [];
+    [...t.rows].forEach(r => { if (r.parentElement.tagName === 'THEAD') return;
+      const rowTh = [...r.cells].some(c => c.tagName === 'TH' && c.textContent.trim());
+      let col = 0; [...r.cells].forEach(c => { const text = c.textContent.trim();
+        if (c.tagName === 'TD' && text && !rowTh && !(cols[col] || '')) out.push({table: t.className || ('#' + ti), cell: text.slice(0, 30), col});
+        col += c.colSpan || 1; }); }); });
+  return out; }
 """
 
 # pause every animation on the page and scrub to t (ms); returns how many were found
@@ -104,19 +176,47 @@ SCRUB_JS = """
 
 
 def contrast_gate(page, name):
+    settled = page.evaluate(SETTLE_JS)
+    page.wait_for_timeout(50)
     items = page.evaluate(CONTRAST_JS)
     bad, mn = [], 99
+    faded = sum(1 for it in items if it["alpha"] < 1)
+    svg = sum(1 for it in items if it["tag"].startswith("text"))
     for it in items:
         c = contrast(it["fg"], it["bg"])
         mn = min(mn, c)
         if c < (3.0 if it["large"] else 4.5):
-            bad.append((round(c, 2), it["tag"], it["text"]))
-    ok(f"{name}: contrast ≥4.5 body / ≥3 large ({len(items)} text nodes)", not bad, bad[:6])
+            bad.append((round(c, 2), it["tag"], it["text"], it["alpha"]))
+    ok(
+        f"{name}: contrast ≥4.5 body / ≥3 large ({len(items)} text nodes, {svg} in svg, "
+        f"{faded} through opacity, {settled} animations settled)",
+        not bad,
+        bad[:6],
+    )
     ok(
         f"{name}: minimum contrast {mn:.2f} ≥ {CONTRAST_FLOOR} (no regression)",
         mn >= CONTRAST_FLOOR,
     )
     NOTES[f"{name}.min_contrast"] = round(mn, 2)
+    NOTES[f"{name}.text_nodes"] = {"total": len(items), "svg": svg, "through_opacity": faded}
+
+
+def structure_gate(page, name):
+    """Heading levels never skip; a link inside running text is underlined; every data cell
+    in every table has a header on some axis. The three markup rules an audit tool flags
+    that a visual pass never notices."""
+    hs = page.evaluate(HEADINGS_JS)
+    skips = [
+        (a["level"], b["level"], b["text"])
+        for a, b in zip(hs, hs[1:], strict=False)
+        if b["level"] > a["level"] + 1
+    ]
+    ok(f"{name}: heading levels never skip ({len(hs)} headings)", hs and not skips, skips)
+    links = page.evaluate(PROSE_LINKS_JS)
+    plain = [(a["where"], a["text"]) for a in links if not a["underline"]]
+    ok(f"{name}: every link in running text is underlined ({len(links)} links)", not plain, plain)
+    orphans = page.evaluate(TABLES_JS)
+    ok(f"{name}: every table data cell has a header", not orphans, orphans[:6])
 
 
 def monotone(seq, direction, tol=1e-6):
@@ -164,6 +264,65 @@ def check_static(path, name):
     if name == "landing":
         for h in honesty:
             ok(f"{name}: honesty disclosure intact: {h[:40]!r}", h in html)
+    check_card(html, name)
+
+
+def meta(html, key):
+    m = re.search(rf'<meta (?:name|property)="{re.escape(key)}" content="([^"]*)"', html)
+    return m.group(1) if m else None
+
+
+def png_size(path):
+    head = path.read_bytes()[:24]
+    if head[:8] != b"\x89PNG\r\n\x1a\n" or head[12:16] != b"IHDR":
+        return None
+    return struct.unpack(">II", head[16:24])
+
+
+def check_card(html, name):
+    """The social card and the search snippet, measured from the built HTML — the copy a
+    scraper gets — and the og-image measured from its own header, not from what the page
+    claims about it."""
+    desc = meta(html, "description") or ""
+    ok(f"{name}: meta description 50–160 chars ({len(desc)})", 50 <= len(desc) <= 160)
+    for key in ("og:description", "twitter:description"):
+        v = meta(html, key) or ""
+        ok(f"{name}: {key} present and ≤125 chars ({len(v)})", 0 < len(v) <= 125)
+    ok(f"{name}: og:site_name present", bool(meta(html, "og:site_name")))
+    ok(
+        f"{name}: twitter:card is summary_large_image",
+        meta(html, "twitter:card") == "summary_large_image",
+    )
+    author = (meta(html, "author") or "").strip()
+    ok(f"{name}: author names a person ({author!r})", author.lower() not in SCAFFOLD_AUTHORS)
+    for key in ("twitter:creator", "twitter:site"):
+        v = meta(html, key) or ""
+        ok(f"{name}: {key} is an @handle ({v!r})", v.startswith("@") and len(v) > 1)
+    og = meta(html, "og:image") or ""
+    u = urlparse(og)
+    ok(
+        f"{name}: og:image is absolute https on {SITE_HOST}",
+        u.scheme == "https" and u.netloc == SITE_HOST,
+    )
+    ok(f"{name}: twitter:image is the og:image", meta(html, "twitter:image") == og)
+    path = SITE / u.path.lstrip("/")
+    if not ok(f"{name}: og:image {u.path} is a file under site/", path.is_file()):
+        return
+    size = png_size(path)
+    ok(f"{name}: og-image.png is exactly {OG_SIZE[0]}x{OG_SIZE[1]} ({size})", size == OG_SIZE)
+    nbytes = path.stat().st_size
+    ok(f"{name}: og-image.png under 1 MB ({nbytes / 1024:.0f} KB)", 0 < nbytes < OG_MAX_BYTES)
+    declared = (meta(html, "og:image:width"), meta(html, "og:image:height"))
+    ok(
+        f"{name}: og:image:width/height declare the file's own size {declared}",
+        size is not None and declared == tuple(str(x) for x in size),
+    )
+    digest = hashlib.sha1(path.read_bytes()).hexdigest()[:8]
+    ok(
+        f"{name}: og:image ?v= is the hash of the bytes shipped ({u.query})",
+        u.query == f"v={digest}",
+    )
+    ok(f"{name}: og:image:alt present", bool(meta(html, "og:image:alt")))
 
 
 LINKS_JS = """
@@ -373,6 +532,7 @@ def check_widths(browser, path, name, out, is_deck):
                 ok(f"{name}: local link {h} exists", target.exists())
         if width == 1440:
             check_links(page, name)
+            structure_gate(page, name)
         if not is_deck:
             check_map_labels(page, f"{name}@{width}")
             if width == 375:
