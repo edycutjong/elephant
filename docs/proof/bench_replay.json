@@ -1,0 +1,12 @@
+{
+  "iterations": 200,
+  "mode": "replay",
+  "split": {
+    "max": 0.0415,
+    "n": 200,
+    "p50": 0.026,
+    "p95": 0.027,
+    "unit": "ms"
+  },
+  "swaps": 100
+}
