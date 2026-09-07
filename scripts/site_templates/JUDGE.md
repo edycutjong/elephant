@@ -2,6 +2,7 @@
 # For judges
 
 Everything you need in one page. No setup, no key, no account.
+Built on the CoinMarketCap API for the Build with CMC: API Hackathon — **Data & Visualisation** track.
 
 ## The claim
 

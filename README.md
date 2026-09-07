@@ -367,7 +367,8 @@ MIT — see [LICENSE](LICENSE).
 
 ## 🙏 Acknowledgments
 
-Built for the **[Build with CMC: API Hackathon](https://dorahacks.io/hackathon/coinmarketcap-api-202609/detail)**.
+Built for the **[Build with CMC: API Hackathon](https://dorahacks.io/hackathon/coinmarketcap-api-202609/detail)**,
+**Data & Visualisation** track.
 Thank you to the CoinMarketCap team for exposing per-swap maker addresses on a keyless endpoint —
 that single field is what made this measurable, and our feedback on the rest of the API is in
 [FEEDBACK.md](FEEDBACK.md).
