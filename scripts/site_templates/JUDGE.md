@@ -26,6 +26,12 @@ sends no CORS header, so a static page cannot call it — and the command above 
 
 1. **Nothing else is required.** No `pip install` (the file is stdlib-only), no `.env`, no API key,
    no signup. If either step above needs more than what is printed, that is a bug — file it.
+   One thing is not a bug: the endpoint is CoinMarketCap's shared anonymous tier, rate-limited per
+   IP, and **{{ausd.wall}} s is the clean-path time.** If the tier is throttling when you run, the
+   script backs off (15 s, 30 s, 60 s) and says so; if your IP's quota is exhausted it stops with a
+   message naming the way through — wait a few minutes, or export a free key from
+   [coinmarketcap.com/api](https://coinmarketcap.com/api) as `CMC_API_KEY`. The key is an escape
+   hatch, never a requirement; every receipt below was taken with no key set.
 2. **Watch the `note` column.** One token per run typically gets thrown out, on screen, with its
    reason. That is the product refusing to hand you a number it does not trust.
 3. **Read the HERO block.** It names a token whose net flow reads balanced and whose split does not.
@@ -39,12 +45,12 @@ Full annotated transcript with the receipt: **[DEMO.md](DEMO.md)**.
 
 | | |
 |---|---|
-| Wall clock | **{{ausd.wall}} s** |
+| Wall clock | **{{ausd.wall}} s** — clean path, no backoff fired |
 | Swaps aggregated | **{{ausd.swaps}}** — {{ausd.symbol}} on {{ausd.platform_title}}, {{ausd.pages}} pages |
 | API calls | {{ausd.pages}} |
 | **Credits used** | **0** — keyless `/public-api` surface |
 | Credentials | none; run with every CMC env var explicitly unset |
-| Tests | **25** (21 offline, 4 live), 7 named after the defect they pin |
+| Tests | **36** (31 offline, 5 live), 10 named after the defect they pin |
 | **Property verification** | **2,000 generated tapes, 0 failing** — `split()` never violated six invariants |
 | Aggregation latency | p50 **{{bench.replay_p50}} ms** (p95 {{bench.replay_p95}} ms, n={{bench.replay_n}}) |
 | Live fetch latency | p50 **{{bench.live_p50}} ms** (p95 {{bench.live_p95}} ms — one iteration sat through a throttle backoff) |
@@ -64,8 +70,8 @@ wallet {{bingo.sell_top_share}} / {{bingo.buy_top_share}} on both sides) and {{c
 ```bash
 python3 scripts/split_tape.py --address {{ausd.address}} --symbol {{ausd.symbol}} --pages {{ausd.pages}} --json ausd.json   # the headline
 python3 scripts/split_tape.py                    # the watchlist, live, keyless
-make test                                        # 21 offline tests
-make test-live                                   # 4 tests against the real CMC contract
+make test                                        # 31 offline tests
+make test-live                                   # 5 tests against the real CMC contract
 pytest tests/test_high_signal.py -k invariants --hypothesis-show-statistics   # the 2,000
 ```
 
@@ -98,9 +104,12 @@ returns.
   `data.lastId`, so earlier numbers came from a single page. Fixed and pinned by a test.)
 - **A wallet is not an entity.** One entity can span wallets (the share is a floor); a router can
   pool many users into one maker (it inflates). The number is the address-level share, no more.
-- **The anonymous tier throttles**, and reports it as an HTTP 500 rather than a 429. Run the
-  watchlist twice quickly and you will hit it; the tool backs off and retries instead of failing,
-  so a throttled run is slow rather than broken.
+- **The anonymous tier throttles, per IP**, and reports it as HTTP 500 as often as 429. Run the
+  watchlist twice quickly and you hit the short throttle; the tool backs off (15 s, 30 s, 60 s)
+  and retries instead of failing, so that run is slow rather than broken. On 2026-09-07 roughly
+  3,700 calls from one IP in a day exhausted the quota outright, and the run stopped with a message
+  that says so and names the way through — wait, or export a free key as `CMC_API_KEY`. The key is
+  an escape hatch, never a precondition. Filed in [FEEDBACK.md](FEEDBACK.md) #2.
 - **The web surface is a snapshot, not a live tool.** The landing page and deck carry dated receipts
   with the command that produced them; a live token-input tool needs a CORS proxy and is not built.
 - **The 24h aggregate buy/sell volume fields are unusable** and deliberately unused: they reconcile

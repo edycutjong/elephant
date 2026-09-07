@@ -1267,7 +1267,7 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
   <div class="wrap">
     <div class="kicker reveal">Run it before you score it</div>
     <h2 class="reveal d1">No key. No install. About thirty seconds.</h2>
-    <p class="lede reveal d2" style="margin-top:16px">This page is a dated snapshot — CoinMarketCap sends no <span class="mono">Access-Control-Allow-Origin</span>, so a static page cannot call it. The live capability is the script. It is stdlib-only Python and the endpoint is keyless, so the command below runs on a clean machine unchanged.</p>
+    <p class="lede reveal d2" style="margin-top:16px">This page is a dated snapshot — CoinMarketCap sends no <span class="mono">Access-Control-Allow-Origin</span>, so a static page cannot call it. The live capability is the script. It is stdlib-only Python and the endpoint is keyless, so the command below runs on a clean machine unchanged. Thirty seconds is the clean-path time — 29.4 s on the receipt; the shared anonymous tier can throttle, and when it does the script backs off and says so.</p>
 
     <div class="term reveal" style="margin-top:32px">
       <div class="bar"><i></i><i></i><i></i><span>elephant — keyless</span><button class="copy" id="copy-cmd" type="button" aria-label="Copy the command">copy</button></div>
@@ -1294,7 +1294,7 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
       <a href="https://github.com/edycutjong/elephant/blob/main/docs/proof/bingo.json" target="_blank" rel="noopener noreferrer"><div class="f">docs/proof/bingo.json<span class="arrow arrow-ext" aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></div><div class="m">BINGO · 800 swaps · 2026-09-07 07:02:51 UTC</div></a>
       <a href="https://github.com/edycutjong/elephant/blob/main/docs/proof/gme.json" target="_blank" rel="noopener noreferrer"><div class="f">docs/proof/gme.json<span class="arrow arrow-ext" aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></div><div class="m">GME · 800 swaps · 2026-09-07 07:03:48 UTC</div></a>
     </div>
-    <p class="muted" style="margin-top:14px;font-size:.9rem">Also in the repo: 21 tests (17 offline, 4 against the live contract), a 2,000-case property check that the maker share can never escape its own denominator, and a CI job that runs the real split on every push with no secret configured.</p>
+    <p class="muted" style="margin-top:14px;font-size:.9rem">Also in the repo: 36 tests (31 offline, 5 against the live contract), a 2,000-case property check that the maker share can never escape its own denominator, and a CI job that runs the real split on every push with no secret configured.</p>
   </div>
 </section>
 
@@ -1322,7 +1322,7 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
       </details>
       <details class="reveal">
         <summary>What throttles?<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
-        <div class="fold"><div class="fold-clip"><div class="body"><p>The anonymous tier, and it reports the throttle as an HTTP 500 as often as a 429. The script backs off (15 s, 30 s, 60 s) and retries rather than failing the row, so a throttled run is slow rather than broken. Eight pages of one token has run clean every time; the eight-token watchlist twice in a row will hit it.</p></div></div></div>
+        <div class="fold"><div class="fold-clip"><div class="body"><p>The anonymous tier, per IP, and it reports the throttle as an HTTP 500 as often as a 429 (error 1022). The script backs off (15 s, 30 s, 60 s) and retries rather than failing the row, so a throttled run is slow rather than broken; when one IP's quota is exhausted outright — observed at roughly 3,700 calls in a day — it stops with a message that says so instead of printing a number. 29.4 s is the clean-path time. The way through is to wait a few minutes, or to export a free key as <span class="mono">CMC_API_KEY</span>, which moves the same call to the keyed endpoint. The default stays keyless; every receipt on this page was taken with no key set.</p></div></div></div>
       </details>
       <details class="reveal">
         <summary>What is not built?<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>

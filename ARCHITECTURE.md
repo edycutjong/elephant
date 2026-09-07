@@ -18,6 +18,8 @@ that is not the fetch or the arithmetic has been removed.
                                     ▼
   ┌─────────────────────────────────────────────────────────────┐
   │  get()          one HTTP GET, backoff on 429 / 5xx          │
+  │                 keyless by default; an exported CMC_API_KEY │
+  │                 moves the same call to the keyed base       │
   │                 errors RETURNED, never swallowed            │
   └─────────────────────────────────────────────────────────────┘
                                     │  raw JSON
@@ -119,6 +121,8 @@ blaming a token for an outage:
 | Condition | Behaviour |
 |---|---|
 | HTTP 429 / any 5xx | Transient. Retried up to `RETRIES` times with exponential backoff (15s, 30s, 60s). |
+| 429 / 5xx on every retry | Throttled. Returned with a `throttled` flag. When no row survives, the run exits with what happened — the anonymous tier, per IP, both status codes — and the two ways through: wait, or export a free key as `CMC_API_KEY`. Never a raw response body. |
+| Any HTTP error body | Described by `describe_http_error()` as the status, CMC's own error code and its message. Until 2026-09-07 it was the first 160 bytes of the body, cut mid-string. |
 | Any other 4xx | Permanent. Returned immediately — retrying a 400 wastes the reader's time. |
 | Transport error / bad JSON | Returned as `meta["error"]`. |
 | Well-formed 200, unusable body | `split()` returns `None`. Never a fabricated number. |
@@ -158,5 +162,5 @@ site/
 | Database | Every number is recomputed from a live fetch. There is nothing to persist. |
 | Cache | A cached tape is a stale tape; the whole claim is about the current window. |
 | Server | The judged capability is a CLI. `site/` is static HTML carrying dated receipts — CoinMarketCap sends no `Access-Control-Allow-Origin`, so a browser cannot call it, and a live web tool would need a proxy that does not exist. |
-| Auth | The endpoint is keyless. Adding auth would remove the best property this project has. |
+| Auth | The judged path is keyless, and requiring auth would remove the best property this project has. A key exported as `CMC_API_KEY` (or `COINMARKETCAP_API_KEY` / `CMC_PRO_API_KEY`) is accepted only as an escape hatch for a throttled IP: `api_key()` reads the environment at call time, never a file, never by default — and a keyed run says so on its first line, its last line and in its receipt. |
 | Runtime dependencies | `split_tape.py` is stdlib-only, so `python3 scripts/split_tape.py` works on a clean machine with no install step. |

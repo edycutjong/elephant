@@ -16,11 +16,20 @@ and the endpoint it calls is keyless. **There is no offline flag on this path, d
 one replay mode in the repository (`scripts/bench.py --replay`) measures the aggregation over a
 captured tape and is labelled a replay everywhere it appears; it is not the product.
 
+**29.4 s is the clean-path time.** The endpoint is CoinMarketCap's shared anonymous tier, which is
+rate-limited per IP. If it is throttling when you run, the script backs off (15 s, 30 s, 60 s) and
+the run is slower; if the quota from your IP is exhausted outright, it stops with a message that
+says so and names the two ways through — wait a few minutes, or export a free key from
+[coinmarketcap.com/api](https://coinmarketcap.com/api) as `CMC_API_KEY`, which moves the identical
+call to the keyed endpoint. The key is an escape hatch, never a requirement: the receipt below was
+taken with every CMC variable unset, and a keyed run announces itself on its first line, its last
+line and in its receipt, so it can never pass as this one.
+
 ## Receipt — live run, 2026-09-07T07:00:52Z
 
 | | |
 |---|---|
-| **Wall clock** | **29.4 s**, cold start to final line |
+| **Wall clock** | **29.4 s**, cold start to final line — the clean-path time; no backoff fired on this run |
 | **Token** | AUSD on Ethereum, `0x00000000efe302beaa2b3e6e1b18d08d69a9012a` |
 | **Swaps aggregated** | 800 (8 pages × 100) |
 | **API calls** | 8 |
@@ -143,15 +152,15 @@ demo, and it is why the backoff exists — see the limitations below.
 
 | | Count |
 |---|---|
-| Total tests | **25** (21 offline, 4 live) |
-| Regression tests, each named for the defect it pins | 7 |
+| Total tests | **36** (31 offline, 5 live) |
+| Regression tests, each named for the defect it pins | 10 |
 | Property-based verification of `split()` | **2,000 generated tapes, 0 failing** |
 | Malformed-response boundary cases | 6 |
-| Coverage of `scripts/split_tape.py` | 58% (the uncovered remainder is CLI printing) |
+| Coverage of `scripts/split_tape.py` | 94% (the uncovered remainder is transport-error branches) |
 
 ```bash
-make test        # 21 offline tests, no network
-make test-live   # 4 tests against the real CMC contract
+make test        # 31 offline tests, no network
+make test-live   # 5 tests against the real CMC contract
 ```
 
 **The 2,000 is the number worth reading.** Coverage says we ran the lines we wrote. The property
@@ -177,9 +186,14 @@ count is worthless without it. They are designed to fail if CoinMarketCap change
   written up in `FEEDBACK.md` #4.
 - **A wallet is not an entity.** One entity can span wallets (the share is a floor); a router can
   pool many users into one maker (it inflates). The number is the address-level share, no more.
-- **The anonymous tier throttles, and it says so with an HTTP 500.** Running the watchlist twice in
-  quick succession will hit it. The tool backs off and retries rather than failing the row, but a
-  throttled run is slow rather than instant. Filed as `FEEDBACK.md` #2.
+- **The anonymous tier throttles, per IP, and reports it as HTTP 500 as often as 429.** Running the
+  watchlist twice in quick succession hits the short throttle; the tool backs off (15 s, 30 s, 60 s)
+  and retries rather than failing the row, so that run is slow rather than broken. On 2026-09-07,
+  roughly 3,700 calls from one IP in a day exhausted the quota outright — three backoffs did not
+  recover it — and the run stopped with a message that says so and names the way through: wait a
+  few minutes, or export a free key as `CMC_API_KEY`. The key is an escape hatch, never a
+  precondition; every receipt in this file was taken with every CMC variable unset. Filed as
+  `FEEDBACK.md` #2.
 - **Wallet counts are per-window.** A maker trading in two windows counts once in each. These are
   distinct-maker counts within the measured tape, not lifetime holders.
 - **`24h_buy_volume` / `24h_sell_volume` are deliberately unused.** They reconcile with `volume_24h`

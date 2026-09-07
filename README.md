@@ -129,7 +129,7 @@ only CoinMarketCap publishes, so everything that is not the fetch or the arithme
 
 | Stage | Function | What it does |
 |---|---|---|
-| Fetch | `get()` | One keyless GET. Backs off on 429/5xx; returns errors instead of swallowing them. |
+| Fetch | `get()` | One GET, keyless by default — a key exported as `CMC_API_KEY` is an optional escape hatch for a throttled IP. Backs off on 429/5xx; returns errors instead of swallowing them; explains an exhausted throttle instead of printing a body. |
 | Paginate | `pull_swaps()` | Cursor is `data.lastId` on the response envelope; de-duplicates on `(tx, lgid)`; returns `(swaps, meta)`. |
 | **Split** | `split()` | **The product.** Partition on `tp`; per side, `Σ v` per `ma` → the top wallet's share, plus `mean(v)` and `|distinct(ma)|`. |
 | Gate | `_confidence()` | Is this ratio meaningful at all? Dust floor + minimum swaps per side. |
@@ -175,15 +175,15 @@ changed this project's entire mechanism: **[FEEDBACK.md](FEEDBACK.md)**.
 
 | Measurement | Value |
 |---|---|
-| Live run wall clock | **29.4 s** — 800 swaps of one token, 8 calls · **10.0 s** — the 8-token watchlist |
+| Live run wall clock | **29.4 s** — 800 swaps of one token, 8 calls, clean path · **10.0 s** — the 8-token watchlist |
 | **Credits used** | **0** — keyless, with every CMC env var explicitly unset |
-| Tests | **25** (21 offline, 4 live) |
-| Regression tests named for the defect they pin | 7 |
+| Tests | **36** (31 offline, 5 live) |
+| Regression tests named for the defect they pin | 10 |
 | **Property-based verification of `split()`** | **2,000 generated tapes, 0 failing** |
 | Malformed-response boundary cases | 6 |
 | Aggregation latency | p50 **0.026 ms**, p95 0.026 ms (n=200) |
 | Live fetch latency | p50 **1,403 ms**, p95 17,474 ms (n=8, includes one throttle backoff) |
-| Coverage of `scripts/split_tape.py` | 58% — the remainder is CLI printing |
+| Coverage of `scripts/split_tape.py` | 94% — the remainder is transport-error branches |
 
 **The 2,000 is the number worth reading.** Coverage says we ran the lines we wrote. The property
 test says that across 2,000 generated tapes `split()` never violated six invariants: the ratio
@@ -233,6 +233,12 @@ python3 scripts/split_tape.py
 > **For judges:** there is no account to create and no credential to configure — the judged path is
 > keyless by design. Start at **[JUDGE.md](JUDGE.md)**.
 
+> **If CoinMarketCap's anonymous tier is throttling your IP**, the script backs off (15 s, 30 s,
+> 60 s) and, if the quota is exhausted, stops with a message that says so rather than printing a
+> number. Optional escape hatch: a free key from [coinmarketcap.com/api](https://coinmarketcap.com/api)
+> exported as `CMC_API_KEY` moves the identical call to the keyed endpoint. Never required — the
+> default path is keyless and every receipt here was taken with no key set.
+
 ```bash
 python3 scripts/split_tape.py --address 0x00000000efe302beaa2b3e6e1b18d08d69a9012a --symbol AUSD --pages 8 --json ausd.json   # the headline, 800 swaps
 python3 scripts/split_tape.py --address 0x6982508145454ce325ddbe47a25d4ec3d2311933 --symbol PEPE
@@ -246,8 +252,8 @@ python3 scripts/split_tape.py --json run.json      # the watchlist, full result 
 ```bash
 make install     # dev deps (pytest, hypothesis, ruff, pip-audit)
 make lint        # ruff check + format check
-make test        # 21 offline tests with coverage, no network
-make test-live   # 4 tests against the real CoinMarketCap contract
+make test        # 31 offline tests with coverage, no network
+make test-live   # 5 tests against the real CoinMarketCap contract
 make demo        # the judged capability, live, no key
 make bench       # deterministic p50/p95 over the captured tape
 make bench-live  # p50/p95 over the real keyless fetch
@@ -260,7 +266,7 @@ make ci          # lint + test + audit + check
 | Layer | Tool | Status |
 |---|---|---|
 | Code quality | ruff (check + format) | ✅ |
-| Unit testing | pytest, 21 offline tests | ✅ |
+| Unit testing | pytest, 31 offline tests | ✅ |
 | Property testing | hypothesis, 2,000 cases | ✅ |
 | Live contract testing | pytest `-m live` against real CMC | ✅ |
 | Security (SAST) | CodeQL | ✅ |
@@ -323,7 +329,8 @@ elephant/
 
 - [x] Per-swap aggregation from the keyless `/v1/dex/tokens/transactions`
 - [x] Confidence floors so a dust side can never produce a headline
-- [x] Backoff across both forms of the anonymous throttle
+- [x] Backoff across both forms of the anonymous throttle; an exhausted quota explains itself
+- [x] Optional keyed escape hatch (`CMC_API_KEY`) for a throttled IP — the default stays keyless
 - [x] Live-run receipts, benchmarks, and property verification
 - [x] Cursor pagination that actually advances (`data.lastId`), `(tx, lgid)` identity
 - [x] Maker attribution per side — the top wallet's share, distribution and top ten
@@ -343,9 +350,13 @@ elephant/
 - **A wallet is not an entity.** One entity can spread across wallets, which makes the share a
   floor; a router or aggregator can pool many users into one maker, which inflates it. The number
   is "share of the side attributed to one address", exactly as the API reports it.
-- **The anonymous tier throttles, and reports it as an HTTP 500** rather than a 429. Run the
-  watchlist twice quickly and you will hit it. The tool backs off and retries rather than failing
-  the row, so a throttled run is slow rather than broken. Filed as [FEEDBACK.md](FEEDBACK.md) #2.
+- **The anonymous tier throttles, per IP, and reports it as HTTP 500 as often as 429.** Run the
+  watchlist twice quickly and you hit the short throttle; the tool backs off (15 s, 30 s, 60 s)
+  and retries rather than failing the row, so that run is slow rather than broken. On 2026-09-07,
+  roughly 3,700 calls from one IP in a day exhausted the quota outright — three backoffs did not
+  recover it — and the run stopped with a message that says so and names the way through: wait,
+  or export a free key as `CMC_API_KEY`. The key is an escape hatch, never a precondition; every
+  receipt here was taken with every CMC variable unset. Filed as [FEEDBACK.md](FEEDBACK.md) #2.
 - **Wallet counts are per-window** — a maker trading in two windows counts once in each. These are
   distinct-maker counts within the measured tape, not lifetime holders.
 - **The 24h aggregate fields are not used, deliberately.** `24h_buy_volume` / `24h_sell_volume`
