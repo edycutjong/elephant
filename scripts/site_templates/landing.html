@@ -112,6 +112,10 @@ a:not(.btn):hover .arrow-ext{transform:translate(1px,-1px);opacity:1}
   .reveal{opacity:0;transform:translateY(18px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
   .reveal.in{opacity:1;transform:none}
   .reveal.d1{transition-delay:.08s}.reveal.d2{transition-delay:.16s}.reveal.d3{transition-delay:.24s}
+  /* the safety reveal (below the fold, observer never fired) snaps: nobody is watching a
+     fade there, and a half-faded paragraph is exactly what an auditor sampling the page
+     at that instant would read as low-contrast text */
+  .reveal.now{transition:none}
 }
 
 /* ── header ──────────────────────────────────────────────────────────────────── */
@@ -823,7 +827,7 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
   }, {rootMargin:'0px 0px -8% 0px', threshold:0.08}) : null;
   document.querySelectorAll('.reveal').forEach(function(el){ io ? io.observe(el) : el.classList.add('in'); });
   // safety: nothing stays hidden if the observer never fires (print, full-page capture, odd embeds)
-  setTimeout(function(){ document.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('in'); }); if (split) split.classList.add('go'); }, 2500);
+  setTimeout(function(){ document.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('in', 'now'); }); if (split) split.classList.add('go'); }, 2500);
 
   // the split — plays once, when the hero visual is in view
   var split = document.querySelector('svg.split');
