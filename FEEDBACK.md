@@ -56,11 +56,27 @@ HTTP 500   error_code 500    "The system is busy, please try again later!"
 We implemented backoff on 429 first. The very next run failed with **eight consecutive HTTP
 500s**, because under sustained load the same throttle surfaces as a 5xx instead.
 
+The limit itself is undocumented, and it has two horizons. The short one clears in under a
+minute — a 15 s backoff usually rides it out. The long one does not: on 2026-09-07, after
+**roughly 3,700 calls from one IP in a day**, backoffs of 15 s + 30 s + 60 s did not recover the
+anonymous surface, while the identical request with a key succeeded immediately. In that state the
+same exhausted quota came back sometimes as the 429/1022 above and sometimes as the 500. Nothing
+in a successful response lets a client see this coming: the keyless 200 carries **no rate-limit
+headers at all** (no `X-RateLimit-*`, no `Retry-After`), and its envelope reports
+`credit_count: 1` on every call — a charge against an account that does not exist, which reads as
+"this is metered" to a developer trying to work out whether the surface is free.
+
+For a keyless integration this matters more than it sounds: our judged demo is one command with
+no credential, and a reader whose IP has spent the day's quota cannot tell an exhausted tier from
+an outage. We now detect the condition and say so — and we added an optional key as an escape
+hatch — but the API could make that unnecessary.
+
 **Why it matters:** 429 means "retry with backoff" and 500 means "we broke, this is not your
 fault." Returning the first condition with the second status code teaches every client to do the
 wrong thing — either give up on a recoverable error, or hammer a genuinely failing service. It
 also makes the API look less reliable than it is: our first instinct was "CMC is down," and it
-was not. **A 429 with `Retry-After` would let clients behave correctly with no guesswork.**
+was not. **A 429 with `Retry-After` would let clients behave correctly with no guesswork; a
+published anonymous quota (per minute and per day) would let a keyless client budget for it.**
 
 ---
 
