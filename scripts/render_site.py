@@ -307,13 +307,11 @@ def struct_svg(kind):
         )
 
     if kind == "A":
-        left = (
-            '<rect x="0" y="16" width="250" height="88" rx="8" fill="#FFB020"/>'
-            f'<text x="125" y="66" text-anchor="middle" font-family="{MONO}" font-size="15" '
-            'font-weight="600" fill="#0B0E14">sell · 1 wallet · $1,000,000</text>'
-        )
+        # the block spans the same rows as the dot grid (y 16..96), so the one mass and the
+        # thousand small ones sit level and the label reads below it like the other three
+        left = '<rect x="0" y="16" width="250" height="80" rx="8" fill="#FFB020"/>'
         label = "One large seller block against many small buyer blocks"
-        left_cap = ""
+        left_cap = caption(125, "sell · 1 wallet · $1,000,000")
     else:
         left = grid(0, AMBER)
         label = "Many small seller blocks against many small buyer blocks"
@@ -508,11 +506,13 @@ def main():
             **kw,
         )
 
+    # label offsets are chosen against the 50% dashed lines (x=387, y=256 in svg units) and the
+    # plot frame; qa_site.py measures the result rather than trusting these numbers
     points = [
-        point(A, "sell", lx=-22, ly=-26, anchor="end"),
-        point(S, "buy", lx=22, ly=5),
+        point(A, "sell", lx=0, ly=-38, anchor="middle"),  # centred above: clear of x=387
+        point(S, "buy", lx=22, ly=-14),  # right, raised: the sub-label clears y=256
         point(Bg, "both", lx=-26, ly=66, anchor="end"),
-        point(C, "none", lx=22, ly=5),
+        point(C, "none", lx=22, ly=-12),  # right, raised: the sub-label stays above the frame
     ]
 
     ctx = {}
