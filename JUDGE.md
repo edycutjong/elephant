@@ -37,7 +37,7 @@ Full annotated transcript with the receipt: **[DEMO.md](DEMO.md)**.
 | Credentials | none; run with every CMC env var explicitly unset |
 | Tests | **21** (17 offline, 4 live), 5 named after the defect they pin |
 | **Property verification** | **2,000 generated tapes, 0 failing** — `split()` never violated five invariants |
-| Aggregation latency | p50 **0.026 ms** (p95 0.027 ms, n=200) |
+| Aggregation latency | p50 **0.026 ms** (p95 0.026 ms, n=200) |
 | Live fetch latency | p50 **1,403 ms** (p95 17,474 ms — one iteration sat through a throttle backoff) |
 | Raw receipts | [`docs/proof/live_run.json`](docs/proof/live_run.json) · [`bench_live.json`](docs/proof/bench_live.json) · [`bench_replay.json`](docs/proof/bench_replay.json) |
 

@@ -102,7 +102,7 @@ network.
 
 | Measurement | n | p50 | p95 |
 |---|---|---|---|
-| Aggregation, replay ([`bench_replay.json`](docs/proof/bench_replay.json)) | 200 | **0.026 ms** | 0.027 ms |
+| Aggregation, replay ([`bench_replay.json`](docs/proof/bench_replay.json)) | 200 | **0.026 ms** | 0.026 ms |
 | Fetch, live network ([`bench_live.json`](docs/proof/bench_live.json)) | 8 | **1,403 ms** | 17,474 ms |
 | Aggregation, live | 8 | 0.166 ms | 2.803 ms |
 

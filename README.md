@@ -172,7 +172,7 @@ changed this project's entire mechanism: **[FEEDBACK.md](FEEDBACK.md)**.
 | Regression tests named for the defect they pin | 5 |
 | **Property-based verification of `split()`** | **2,000 generated tapes, 0 failing** |
 | Malformed-response boundary cases | 6 |
-| Aggregation latency | p50 **0.026 ms**, p95 0.027 ms (n=200) |
+| Aggregation latency | p50 **0.026 ms**, p95 0.026 ms (n=200) |
 | Live fetch latency | p50 **1,403 ms**, p95 17,474 ms (n=8, includes one throttle backoff) |
 | Coverage of `scripts/split_tape.py` | 58% — the remainder is CLI printing |
 
