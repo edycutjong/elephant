@@ -27,7 +27,7 @@ demo:  ## the judged capability, live, zero config, no key
 seed:  ## re-capture the offline replay tape from the live API
 	python3 scripts/seed.py
 
-site:  ## re-render the landing page and the deck from docs/proof/*.json
+site:  ## re-render the landing page, the deck and JUDGE.md from docs/proof/*.json
 	python3 scripts/render_site.py
 
 audit:  ## dependency + secret audit
@@ -36,7 +36,7 @@ audit:  ## dependency + secret audit
 
 check:  ## refuse to ship a placeholder to a judge, or a page that drifted from its receipts
 	python3 scripts/check_submission_readiness.py
-	python3 scripts/render_site.py && git diff --exit-code --stat -- site
+	python3 scripts/render_site.py && git diff --exit-code --stat -- site JUDGE.md
 
 ci: lint test audit check  ## everything CI runs, offline
 all: ci bench  ## ci plus the deterministic benchmark

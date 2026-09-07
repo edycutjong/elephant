@@ -14,12 +14,12 @@ cannot contain.**
 The judged capability is a command-line tool, and that is the whole install:
 
 ```bash
-git clone https://github.com/edycutjong/elephant.git && cd elephant
-python3 scripts/split_tape.py --address 0x00000000efe302beaa2b3e6e1b18d08d69a9012a --symbol AUSD --pages 8 --json ausd.json
+git clone {{repo}}.git && cd elephant
+python3 scripts/split_tape.py --address {{ausd.address}} --symbol {{ausd.symbol}} --pages {{ausd.pages}} --json ausd.json
 ```
 
-The landing page at **[elephant.edycu.dev](https://elephant.edycu.dev)** and the deck at
-**[/pitch](https://elephant.edycu.dev/pitch/)** show the same receipt with the raw swaps beside it,
+The landing page at **[elephant.edycu.dev]({{site}})** and the deck at
+**[/pitch]({{site}}/pitch/)** show the same receipt with the raw swaps beside it,
 so the number can be checked by hand in thirty seconds. They are dated snapshots — CoinMarketCap
 sends no CORS header, so a static page cannot call it — and the command above is the live path.
 
@@ -34,34 +34,34 @@ sends no CORS header, so a static page cannot call it — and the command above 
 
 Full annotated transcript with the receipt: **[DEMO.md](DEMO.md)**.
 
-## Receipt — live run, 2026-09-07T07:00:52Z
+## Receipt — live run, {{ausd.captured}}
 
 | | |
 |---|---|
-| Wall clock | **29.4 s** |
-| Swaps aggregated | **800** — AUSD on Ethereum, 8 pages |
-| API calls | 8 |
+| Wall clock | **{{ausd.wall}} s** |
+| Swaps aggregated | **{{ausd.swaps}}** — {{ausd.symbol}} on {{ausd.platform_title}}, {{ausd.pages}} pages |
+| API calls | {{ausd.pages}} |
 | **Credits used** | **0** — keyless `/public-api` surface |
 | Credentials | none; run with every CMC env var explicitly unset |
 | Tests | **25** (21 offline, 4 live), 7 named after the defect they pin |
 | **Property verification** | **2,000 generated tapes, 0 failing** — `split()` never violated six invariants |
-| Aggregation latency | p50 **0.026 ms** (p95 0.026 ms, n=200) |
-| Live fetch latency | p50 **1,403 ms** (p95 17,474 ms — one iteration sat through a throttle backoff) |
-| Raw receipts | [`docs/proof/ausd.json`](docs/proof/ausd.json) · [`shfl.json`](docs/proof/shfl.json) · [`bingo.json`](docs/proof/bingo.json) · [`gme.json`](docs/proof/gme.json) · [`live_run.json`](docs/proof/live_run.json) · [`bench_live.json`](docs/proof/bench_live.json) · [`bench_replay.json`](docs/proof/bench_replay.json) |
+| Aggregation latency | p50 **{{bench.replay_p50}} ms** (p95 {{bench.replay_p95}} ms, n={{bench.replay_n}}) |
+| Live fetch latency | p50 **{{bench.live_p50}} ms** (p95 {{bench.live_p95}} ms — one iteration sat through a throttle backoff) |
+| Raw receipts | [`docs/proof/ausd.json`](docs/proof/ausd.json) · [`shfl.json`](docs/proof/shfl.json) · [`bingo.json`](docs/proof/bingo.json) · [`{{churn.file}}`](docs/proof/{{churn.file}}) · [`live_run.json`](docs/proof/live_run.json) · [`bench_live.json`](docs/proof/bench_live.json) · [`bench_replay.json`](docs/proof/bench_replay.json) |
 
-The headline from that run: **one wallet was 62.0% of AUSD's sell side — $25,459,824 in
-12 swaps — sold into 212 distinct buying wallets, while net flow read +2.1%.** Every flow
-dashboard renders +2.1% as "balanced." Check it: `sell_top_vol ÷ sell_vol` in the receipt row, or sum
-the 12 raw swaps in its `hero_evidence` block.
+The headline from that run: **one wallet was {{ausd.sell_top_share}} of {{ausd.symbol}}'s sell side — {{ausd.sell_top_vol}} in
+{{ausd.sell_top_swaps}} swaps — sold into {{ausd.buy_wallets}} distinct buying wallets, while net flow read {{ausd.net}}.** Every flow
+dashboard renders {{ausd.net}} as "balanced." Check it: `sell_top_vol ÷ sell_vol` in the receipt row, or sum
+the {{ausd.sell_top_swaps}} raw swaps in its `hero_evidence` block.
 
 The same script on three more balanced tokens gives the other three market structures a summed
-number cannot name: SHFL (one wallet 54.1% of the *buy* side against 425 sellers), BINGO (the same
-wallet 97.9% / 99.3% on both sides) and GME (2.9% / 3.7% — actually balanced).
+number cannot name: {{shfl.symbol}} (one wallet {{shfl.buy_top_share}} of the *buy* side against {{shfl.sell_wallets}} sellers), {{bingo.symbol}} (the same
+wallet {{bingo.sell_top_share}} / {{bingo.buy_top_share}} on both sides) and {{churn.symbol}} ({{churn.sell_top_share}} / {{churn.buy_top_share}} — actually balanced).
 
 ## Reproduce
 
 ```bash
-python3 scripts/split_tape.py --address 0x00000000efe302beaa2b3e6e1b18d08d69a9012a --symbol AUSD --pages 8 --json ausd.json   # the headline
+python3 scripts/split_tape.py --address {{ausd.address}} --symbol {{ausd.symbol}} --pages {{ausd.pages}} --json ausd.json   # the headline
 python3 scripts/split_tape.py                    # the watchlist, live, keyless
 make test                                        # 21 offline tests
 make test-live                                   # 4 tests against the real CMC contract
@@ -92,7 +92,7 @@ returns.
 
 ## Honest limitations
 
-- **A run measures a window, not 24 hours.** Depth is `--pages` × 100; the receipts use 8 pages.
+- **A run measures a window, not 24 hours.** Depth is `--pages` × 100; the receipts use {{ausd.pages}} pages.
   (Until 2026-09-07 our paginator read the cursor off the last swap instead of the envelope's
   `data.lastId`, so earlier numbers came from a single page. Fixed and pinned by a test.)
 - **A wallet is not an entity.** One entity can span wallets (the share is a floor); a router can
@@ -115,6 +115,6 @@ returns.
 | **API feedback for CMC** | [FEEDBACK.md](FEEDBACK.md) — five dated, evidenced findings |
 | **The product** | [`scripts/split_tape.py`](scripts/split_tape.py) — 200 lines, stdlib only |
 | **The tests** | [`tests/test_high_signal.py`](tests/test_high_signal.py) |
-| **Landing page** | [elephant.edycu.dev](https://elephant.edycu.dev) — the receipt beside its raw swaps |
-| **Pitch deck** | [elephant.edycu.dev/pitch](https://elephant.edycu.dev/pitch/) — 11 slides, arrow keys |
+| **Landing page** | [elephant.edycu.dev]({{site}}) — the receipt beside its raw swaps |
+| **Pitch deck** | [elephant.edycu.dev/pitch]({{site}}/pitch/) — 11 slides, arrow keys |
 | Video · BUIDL | not yet published — see the README for current status |

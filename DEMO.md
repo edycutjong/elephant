@@ -7,7 +7,7 @@ differ, because they come from the market rather than from this file.
 ## Reproduce
 
 ```bash
-git clone https://github.com/edycutjong/elephant-tracks.git && cd elephant-tracks
+git clone https://github.com/edycutjong/elephant.git && cd elephant
 python3 scripts/split_tape.py --address 0x00000000efe302beaa2b3e6e1b18d08d69a9012a --symbol AUSD --pages 8 --json ausd.json
 ```
 

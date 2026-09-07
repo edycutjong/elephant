@@ -3,7 +3,7 @@
 ## Run it in 30 seconds — no key, no signup
 
 ```bash
-git clone <this repo> && cd elephant-tracks
+git clone <this repo> && cd elephant
 python3 scripts/split_tape.py
 ```
 

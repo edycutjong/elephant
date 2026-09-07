@@ -28,7 +28,7 @@ $25,459,824 in 12 swaps — into 212 buying wallets, while net flow read
 ![CoinMarketCap](https://img.shields.io/badge/CoinMarketCap_DEX_API-17181B?style=flat&logo=coinmarketcap&logoColor=white)
 ![No API key](https://img.shields.io/badge/API_key-not_required-4C9AFF?style=flat)
 ![Zero dependencies](https://img.shields.io/badge/runtime_deps-zero-5E6C80?style=flat)
-[![CI](https://github.com/edycutjong/elephant-tracks/actions/workflows/ci.yml/badge.svg)](https://github.com/edycutjong/elephant-tracks/actions/workflows/ci.yml)
+[![CI](https://github.com/edycutjong/elephant/actions/workflows/ci.yml/badge.svg)](https://github.com/edycutjong/elephant/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-MIT-FFB020?style=flat)](LICENSE)
 
 </div>
@@ -225,8 +225,8 @@ SHIB at 772.9× off 75 sub-cent sells; the floors exist because of that row.
 ### Installation
 
 ```bash
-git clone https://github.com/edycutjong/elephant-tracks.git
-cd elephant-tracks
+git clone https://github.com/edycutjong/elephant.git
+cd elephant
 python3 scripts/split_tape.py
 ```
 
@@ -251,7 +251,7 @@ make test-live   # 4 tests against the real CoinMarketCap contract
 make demo        # the judged capability, live, no key
 make bench       # deterministic p50/p95 over the captured tape
 make bench-live  # p50/p95 over the real keyless fetch
-make site        # re-render the landing page and the deck from docs/proof/*.json
+make site        # re-render the landing page, the deck and JUDGE.md from docs/proof/*.json
 make check       # refuse to ship a placeholder, or a page that drifted from its receipts
 make ci          # lint + test + audit + check
 ```
@@ -271,25 +271,26 @@ CI runs lint, tests, `pip-audit`, CodeQL, gitleaks, a placeholder gate, a determ
 **and a `live-api` job that executes the real split on every push.** It is keyless, so it runs on
 forks and PRs too. If CMC changes the contract, it breaks in CI rather than in front of a judge.
 
-**The landing page and the deck are generated, never hand-edited.** `scripts/render_site.py`
-renders `site/index.html` and `site/pitch/index.html` from the templates in
-`scripts/site_templates/` and the receipts in `docs/proof/`. Every figure on either page is a
-`{{token}}` filled from a committed JSON receipt; the render aborts if any slot is left unfilled,
-and CI re-renders both pages and fails on any diff. So no number on the web surface can be typed
-in by hand, none can be a placeholder, and none can drift from the run that produced it.
+**The landing page, the deck and JUDGE.md are generated, never hand-edited.**
+`scripts/render_site.py` renders `site/index.html`, `site/pitch/index.html` and `JUDGE.md` from
+the templates in `scripts/site_templates/` and the receipts in `docs/proof/`. Every figure on any
+of the three is a `{{token}}` filled from a committed JSON receipt; the render aborts if any slot
+is left unfilled, and CI re-renders all three and fails on any diff. So no number a judge reads can
+be typed in by hand, none can be a placeholder, and none can drift from the run that produced it —
+the landing page and the judge guide cannot disagree, because they are the same render.
 
 ---
 
 ## 📁 Project Structure
 
 ```
-elephant-tracks/
+elephant/
 ├── scripts/
 │   ├── split_tape.py                 the product — fetch, split, rank, print
 │   ├── bench.py                      p50/p95, network and aggregation timed apart
 │   ├── seed.py                       capture a tape for replay (NOT the demo path)
-│   ├── render_site.py                renders site/ from docs/proof/*.json — no hand-typed numbers
-│   ├── site_templates/               landing.html, deck.html — {{token}} slots, fail if unfilled
+│   ├── render_site.py                renders site/ and JUDGE.md from docs/proof/*.json — no hand-typed numbers
+│   ├── site_templates/               landing.html, deck.html, JUDGE.md — {{token}} slots, fail if unfilled
 │   └── check_submission_readiness.py placeholder scanner
 ├── tests/
 │   ├── test_split.py                 the maths + live contract tests

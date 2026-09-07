@@ -568,8 +568,8 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
     <p class="lede reveal d2" style="margin-top:16px">This page is a dated snapshot — CoinMarketCap sends no <span class="mono">Access-Control-Allow-Origin</span>, so a static page cannot call it. The live capability is the script. It is stdlib-only Python and the endpoint is keyless, so the command below runs on a clean machine unchanged.</p>
 
     <div class="term reveal" style="margin-top:32px">
-      <div class="bar"><i></i><i></i><i></i><span>elephant-tracks — keyless</span><button class="copy" id="copy-cmd" type="button" aria-label="Copy the command">copy</button></div>
-      <pre id="cmd"><span class="p">$</span> <span class="cmd">git clone {{repo}}.git &amp;&amp; cd elephant-tracks</span>
+      <div class="bar"><i></i><i></i><i></i><span>elephant — keyless</span><button class="copy" id="copy-cmd" type="button" aria-label="Copy the command">copy</button></div>
+      <pre id="cmd"><span class="p">$</span> <span class="cmd">git clone {{repo}}.git &amp;&amp; cd elephant</span>
 <span class="p">$</span> <span class="cmd">python3 scripts/split_tape.py --address {{ausd.address}} --symbol AUSD --pages 8 --json ausd.json</span>
 
 <span class="dim">splitting the tape — keyless, 8 page(s) x 100 swaps per token</span>
@@ -744,7 +744,7 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
   // copy the reproduce command
   var btn = document.getElementById('copy-cmd');
   if (btn) btn.addEventListener('click', function(){
-    var text = 'git clone {{repo}}.git && cd elephant-tracks && python3 scripts/split_tape.py --address {{ausd.address}} --symbol AUSD --pages 8 --json ausd.json';
+    var text = 'git clone {{repo}}.git && cd elephant && python3 scripts/split_tape.py --address {{ausd.address}} --symbol AUSD --pages 8 --json ausd.json';
     function done(){ btn.textContent = 'copied'; btn.classList.add('done'); setTimeout(function(){ btn.textContent = 'copy'; btn.classList.remove('done'); }, 1600); }
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, done); else done();
   });

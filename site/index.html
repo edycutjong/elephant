@@ -353,7 +353,7 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
       <a href="#api">API</a>
       <a href="#run">Run</a>
       <a class="deck" href="pitch/">Deck</a>
-      <a class="gh" href="https://github.com/edycutjong/elephant-tracks" aria-label="Source on GitHub" title="Source on GitHub" rel="noopener">
+      <a class="gh" href="https://github.com/edycutjong/elephant" aria-label="Source on GitHub" title="Source on GitHub" rel="noopener">
         <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
       </a>
     </nav>
@@ -818,7 +818,7 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
           <summary>The full receipt row — every key, verbatim
             <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
           </summary>
-          <div class="body"><p>Sorted keys; the two per-wallet share arrays are elided here and complete in <a href="https://github.com/edycutjong/elephant-tracks/blob/main/docs/proof/ausd.json" rel="noopener">docs/proof/ausd.json</a>.</p><pre class="json" tabindex="0" aria-label="Full raw receipt row for AUSD">{
+          <div class="body"><p>Sorted keys; the two per-wallet share arrays are elided here and complete in <a href="https://github.com/edycutjong/elephant/blob/main/docs/proof/ausd.json" rel="noopener">docs/proof/ausd.json</a>.</p><pre class="json" tabindex="0" aria-label="Full raw receipt row for AUSD">{
   <span class="key">"address"</span>: "0x00000000efe302beaa2b3e6e1b18d08d69a9012a",
   <span class="key">"avg_buy"</span>: 91699.60505994596,
   <span class="key">"avg_sell"</span>: 123273.09537189016,
@@ -1148,8 +1148,8 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
     <p class="lede reveal d2" style="margin-top:16px">This page is a dated snapshot — CoinMarketCap sends no <span class="mono">Access-Control-Allow-Origin</span>, so a static page cannot call it. The live capability is the script. It is stdlib-only Python and the endpoint is keyless, so the command below runs on a clean machine unchanged.</p>
 
     <div class="term reveal" style="margin-top:32px">
-      <div class="bar"><i></i><i></i><i></i><span>elephant-tracks — keyless</span><button class="copy" id="copy-cmd" type="button" aria-label="Copy the command">copy</button></div>
-      <pre id="cmd"><span class="p">$</span> <span class="cmd">git clone https://github.com/edycutjong/elephant-tracks.git &amp;&amp; cd elephant-tracks</span>
+      <div class="bar"><i></i><i></i><i></i><span>elephant — keyless</span><button class="copy" id="copy-cmd" type="button" aria-label="Copy the command">copy</button></div>
+      <pre id="cmd"><span class="p">$</span> <span class="cmd">git clone https://github.com/edycutjong/elephant.git &amp;&amp; cd elephant</span>
 <span class="p">$</span> <span class="cmd">python3 scripts/split_tape.py --address 0x00000000efe302beaa2b3e6e1b18d08d69a9012a --symbol AUSD --pages 8 --json ausd.json</span>
 
 <span class="dim">splitting the tape — keyless, 8 page(s) x 100 swaps per token</span>
@@ -1167,10 +1167,10 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
     <p class="muted" style="margin-top:16px;font-size:.95rem">Your numbers will differ — the window moves with the market, and that is the point: the receipt above was produced by this exact command at 2026-09-07 07:00:52 UTC. If the same wallet still dominates when you run it, the finding is persistent; if it does not, you have just watched the tape change.</p>
 
     <div class="proof">
-      <a href="https://github.com/edycutjong/elephant-tracks/blob/main/docs/proof/ausd.json" rel="noopener"><div class="f">docs/proof/ausd.json</div><div class="m">AUSD · 800 swaps · 2026-09-07 07:00:52 UTC</div></a>
-      <a href="https://github.com/edycutjong/elephant-tracks/blob/main/docs/proof/shfl.json" rel="noopener"><div class="f">docs/proof/shfl.json</div><div class="m">SHFL · 800 swaps · 2026-09-07 07:01:52 UTC</div></a>
-      <a href="https://github.com/edycutjong/elephant-tracks/blob/main/docs/proof/bingo.json" rel="noopener"><div class="f">docs/proof/bingo.json</div><div class="m">BINGO · 800 swaps · 2026-09-07 07:02:51 UTC</div></a>
-      <a href="https://github.com/edycutjong/elephant-tracks/blob/main/docs/proof/gme.json" rel="noopener"><div class="f">docs/proof/gme.json</div><div class="m">GME · 800 swaps · 2026-09-07 07:03:48 UTC</div></a>
+      <a href="https://github.com/edycutjong/elephant/blob/main/docs/proof/ausd.json" rel="noopener"><div class="f">docs/proof/ausd.json</div><div class="m">AUSD · 800 swaps · 2026-09-07 07:00:52 UTC</div></a>
+      <a href="https://github.com/edycutjong/elephant/blob/main/docs/proof/shfl.json" rel="noopener"><div class="f">docs/proof/shfl.json</div><div class="m">SHFL · 800 swaps · 2026-09-07 07:01:52 UTC</div></a>
+      <a href="https://github.com/edycutjong/elephant/blob/main/docs/proof/bingo.json" rel="noopener"><div class="f">docs/proof/bingo.json</div><div class="m">BINGO · 800 swaps · 2026-09-07 07:02:51 UTC</div></a>
+      <a href="https://github.com/edycutjong/elephant/blob/main/docs/proof/gme.json" rel="noopener"><div class="f">docs/proof/gme.json</div><div class="m">GME · 800 swaps · 2026-09-07 07:03:48 UTC</div></a>
     </div>
     <p class="muted" style="margin-top:14px;font-size:.9rem">Also in the repo: 21 tests (17 offline, 4 against the live contract), a 2,000-case property check that the maker share can never escape its own denominator, and a CI job that runs the real split on every push with no secret configured.</p>
   </div>
@@ -1216,9 +1216,9 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
     <div class="kicker reveal">Net flow is one number. The split is four.</div>
     <h2 class="reveal d1">Run the split on a token you care about.</h2>
     <div class="cta-row reveal d2">
-      <a class="btn btn-primary" href="https://github.com/edycutjong/elephant-tracks" rel="noopener">Open the repository <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn btn-primary" href="https://github.com/edycutjong/elephant" rel="noopener">Open the repository <span class="arrow" aria-hidden="true">→</span></a>
       <a class="btn" href="pitch/">Watch the deck <span class="arrow" aria-hidden="true">→</span></a>
-      <a class="btn" href="https://github.com/edycutjong/elephant-tracks/blob/main/JUDGE.md" rel="noopener">JUDGE.md</a>
+      <a class="btn" href="https://github.com/edycutjong/elephant/blob/main/JUDGE.md" rel="noopener">JUDGE.md</a>
     </div>
   </div>
 </section>
@@ -1234,18 +1234,18 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
       <div>
         <h4>Repository</h4>
         <ul>
-          <li><a class="link-quiet" href="https://github.com/edycutjong/elephant-tracks" rel="noopener">Source</a></li>
-          <li><a class="link-quiet" href="https://github.com/edycutjong/elephant-tracks/blob/main/JUDGE.md" rel="noopener">For judges</a></li>
-          <li><a class="link-quiet" href="https://github.com/edycutjong/elephant-tracks/blob/main/DEMO.md" rel="noopener">Demo transcript</a></li>
-          <li><a class="link-quiet" href="https://github.com/edycutjong/elephant-tracks/blob/main/ARCHITECTURE.md" rel="noopener">Architecture</a></li>
+          <li><a class="link-quiet" href="https://github.com/edycutjong/elephant" rel="noopener">Source</a></li>
+          <li><a class="link-quiet" href="https://github.com/edycutjong/elephant/blob/main/JUDGE.md" rel="noopener">For judges</a></li>
+          <li><a class="link-quiet" href="https://github.com/edycutjong/elephant/blob/main/DEMO.md" rel="noopener">Demo transcript</a></li>
+          <li><a class="link-quiet" href="https://github.com/edycutjong/elephant/blob/main/ARCHITECTURE.md" rel="noopener">Architecture</a></li>
         </ul>
       </div>
       <div>
         <h4>Evidence</h4>
         <ul>
-          <li><a class="link-quiet" href="https://github.com/edycutjong/elephant-tracks/tree/main/docs/proof" rel="noopener">Receipts</a></li>
-          <li><a class="link-quiet" href="https://github.com/edycutjong/elephant-tracks/blob/main/FEEDBACK.md" rel="noopener">API feedback for CMC</a></li>
-          <li><a class="link-quiet" href="https://github.com/edycutjong/elephant-tracks/blob/main/scripts/split_tape.py" rel="noopener">split_tape.py</a></li>
+          <li><a class="link-quiet" href="https://github.com/edycutjong/elephant/tree/main/docs/proof" rel="noopener">Receipts</a></li>
+          <li><a class="link-quiet" href="https://github.com/edycutjong/elephant/blob/main/FEEDBACK.md" rel="noopener">API feedback for CMC</a></li>
+          <li><a class="link-quiet" href="https://github.com/edycutjong/elephant/blob/main/scripts/split_tape.py" rel="noopener">split_tape.py</a></li>
           <li><a class="link-quiet" href="pitch/">Pitch deck</a></li>
         </ul>
       </div>
@@ -1260,7 +1260,7 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
     </div>
     <div class="bottom">
       <span>captured 2026-09-07 07:00:52 UTC · 0 credits · no key</span>
-      <span><a class="link-quiet" href="https://github.com/edycutjong/elephant-tracks/releases/latest" rel="noopener">v0.0.0-dev</a></span>
+      <span><a class="link-quiet" href="https://github.com/edycutjong/elephant/releases/latest" rel="noopener">v0.0.0-dev</a></span>
     </div>
   </div>
 </footer>
@@ -1324,7 +1324,7 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
   // copy the reproduce command
   var btn = document.getElementById('copy-cmd');
   if (btn) btn.addEventListener('click', function(){
-    var text = 'git clone https://github.com/edycutjong/elephant-tracks.git && cd elephant-tracks && python3 scripts/split_tape.py --address 0x00000000efe302beaa2b3e6e1b18d08d69a9012a --symbol AUSD --pages 8 --json ausd.json';
+    var text = 'git clone https://github.com/edycutjong/elephant.git && cd elephant && python3 scripts/split_tape.py --address 0x00000000efe302beaa2b3e6e1b18d08d69a9012a --symbol AUSD --pages 8 --json ausd.json';
     function done(){ btn.textContent = 'copied'; btn.classList.add('done'); setTimeout(function(){ btn.textContent = 'copy'; btn.classList.remove('done'); }, 1600); }
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, done); else done();
   });

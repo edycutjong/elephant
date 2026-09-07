@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render site/index.html and site/pitch/index.html from the committed receipts.
+"""Render site/index.html, site/pitch/index.html and JUDGE.md from the committed receipts.
 
     python3 scripts/render_site.py            # churn token defaults to gme
     python3 scripts/render_site.py gme
@@ -22,7 +22,7 @@ TEMPLATES = BUILD / "scripts" / "site_templates"
 PROOF = BUILD / "docs" / "proof"
 SITE = BUILD / "site"
 
-REPO = "https://github.com/edycutjong/elephant-tracks"
+REPO = "https://github.com/edycutjong/elephant"
 SITE_URL = "https://elephant.edycu.dev"
 EVENT = "https://dorahacks.io/hackathon/coinmarketcap-api-202609/detail"
 VERSION = "v0.0.0-dev"
@@ -398,6 +398,7 @@ def token_ctx(p, d, r):
     return {
         f"{p}.symbol": r["symbol"],
         f"{p}.platform": r.get("platform") or PLATFORM_FALLBACK[r["symbol"]],
+        f"{p}.platform_title": (r.get("platform") or PLATFORM_FALLBACK[r["symbol"]]).title(),
         f"{p}.address": r["address"],
         f"{p}.addr_short": short_addr(r["address"]),
         f"{p}.swaps": r["swaps"],
@@ -482,8 +483,15 @@ def main():
         f"{'net flow':>10}"
     )
     share = A["sell_top_vol"] / A["sell_vol"]
+    replay = json.loads((PROOF / "bench_replay.json").read_text())["split"]
+    live = json.loads((PROOF / "bench_live.json").read_text())["fetch"]
     ctx.update(
         {
+            "bench.replay_p50": f"{replay['p50']:.3f}",
+            "bench.replay_p95": f"{replay['p95']:.3f}",
+            "bench.replay_n": replay["n"],
+            "bench.live_p50": f"{live['p50']:,.0f}",
+            "bench.live_p95": f"{live['p95']:,.0f}",
             "repo": REPO,
             "site": SITE_URL,
             "event": EVENT,
@@ -533,7 +541,12 @@ def main():
     (SITE / "index.html").write_text(landing)
     deck = render((TEMPLATES / "deck.html").read_text(), ctx)
     (SITE / "pitch" / "index.html").write_text(deck)
-    print("rendered", len(landing), "bytes landing,", len(deck), "bytes deck")
+    # JUDGE.md carries the same claim, number and command as the landing page. Rendering it
+    # from the same receipts is what stops the judge-facing document freezing on day one
+    # while the product moves on.
+    judge = render((TEMPLATES / "JUDGE.md").read_text(), ctx)
+    (BUILD / "JUDGE.md").write_text(judge)
+    print(f"rendered {len(landing)}B landing, {len(deck)}B deck, {len(judge)}B JUDGE.md")
 
 
 if __name__ == "__main__":
