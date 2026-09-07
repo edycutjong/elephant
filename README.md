@@ -252,6 +252,7 @@ make demo        # the judged capability, live, no key
 make bench       # deterministic p50/p95 over the captured tape
 make bench-live  # p50/p95 over the real keyless fetch
 make site        # re-render the landing page, the deck and JUDGE.md from docs/proof/*.json
+python3 scripts/qa_site.py   # 138 measured gates on the web surfaces (needs playwright + pillow)
 make check       # refuse to ship a placeholder, or a page that drifted from its receipts
 make ci          # lint + test + audit + check
 ```
@@ -279,6 +280,17 @@ is left unfilled, and CI re-renders all three and fails on any diff. So no numbe
 be typed in by hand, none can be a placeholder, and none can drift from the run that produced it —
 the landing page and the judge guide cannot disagree, because they are the same render.
 
+**The web surfaces are measured, not eyeballed.** `scripts/qa_site.py` drives both pages in headless
+Chromium and runs 138 gates: no horizontal overflow at 375 / 768 / 1440, every link and image
+resolves, a page height budget on phones, every text node at or above WCAG AA contrast (minimum
+5.65:1, gated against regression), every interactive element proven to change on hover by
+screenshot byte-diff, all eleven slides reachable by keyboard and inside the stage, the page
+rendering with every external request blocked, `prefers-reduced-motion` leaving zero running
+animations, and the animation itself sampled with the clock paused — the staged split must hold
+the summed bar alone first, never reverse, never snap, and end in exactly the reduced-motion
+frame; the one loop on the page must collapse and recover exactly once per cycle with zero
+velocity across its seam. It is not in CI because CI has no browser; run it before a publish.
+
 ---
 
 ## 📁 Project Structure
@@ -290,6 +302,7 @@ elephant/
 │   ├── bench.py                      p50/p95, network and aggregation timed apart
 │   ├── seed.py                       capture a tape for replay (NOT the demo path)
 │   ├── render_site.py                renders site/ and JUDGE.md from docs/proof/*.json — no hand-typed numbers
+│   ├── qa_site.py                    138 measured gates on the two web surfaces (Playwright)
 │   ├── site_templates/               landing.html, deck.html, JUDGE.md — {{token}} slots, fail if unfilled
 │   └── check_submission_readiness.py placeholder scanner
 ├── tests/

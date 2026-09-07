@@ -41,6 +41,9 @@ _ideas/
 _specs/
 graphify-out/
 
+# browser QA output (scripts/qa_site.py)
+.qa/
+
 # coverage artifacts
 .coverage
 .coverage.*
