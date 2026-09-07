@@ -1,0 +1,544 @@
+<!doctype html>
+<!--
+  Elephant Tracks — pitch deck (single file)
+  Keys: → / space / PageDown = next · ← / PageUp = back · Home / End · ESC = overview grid · P = presenter notes · C = contrast debug
+  Print: Cmd/Ctrl+P → Save as PDF → landscape. One slide per page, chrome hidden.
+  Every number on every slide is from build/docs/proof/*.json — real keyless runs of scripts/split_tape.py.
+-->
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elephant Tracks — pitch deck</title>
+<meta name="description" content="Pitch deck for Elephant Tracks: net flow is a sum, summing is lossy, so split the swaps by maker. Build with CMC API Hackathon, Data & Visualisation track.">
+<link rel="canonical" href="{{site}}/pitch/">
+<link rel="icon" type="image/svg+xml" href="../assets/icon.svg">
+<meta name="theme-color" content="#0B0E14">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Elephant Tracks">
+<meta property="og:url" content="{{site}}/pitch/">
+<meta property="og:title" content="Elephant Tracks — pitch deck">
+<meta property="og:description" content="Net flow is a sum, and summing is lossy. One wallet was {{ausd.sell_top_share}} of AUSD's sell side while net flow read {{ausd.net}}. Eleven slides, every number from a keyless run.">
+<meta property="og:image" content="{{site}}/assets/og-image.png?v=20260907">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Elephant Tracks — pitch deck">
+<meta name="twitter:description" content="Net flow is a sum, and summing is lossy. Split the swaps by maker.">
+<meta name="twitter:image" content="{{site}}/assets/og-image.png?v=20260907">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#0B0E14; --surface:#141A24; --surface-2:#1A2230; --border:#243044; --text:#E6EDF3; --muted:#8B98A9;
+  --elephant:#FFB020; --herd:#4C9AFF; --collapsed:#5E6C80; --flag:#FF5C5C;
+  --color-bg:var(--bg); --color-primary:var(--herd); --color-accent:var(--elephant);
+  --font-display:'Inter Tight','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI Variable','Segoe UI',system-ui,sans-serif;
+  --font-body:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono','SF Mono',Menlo,Consolas,'Liberation Mono',ui-monospace,monospace;
+  --num:'tnum' 1,'lnum' 1;
+  --t-fast:160ms; --t-med:320ms; --ease:cubic-bezier(.16,.84,.44,1);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);overflow:hidden}
+body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+a{color:var(--herd);text-decoration:none}
+a:hover{color:#8ec0ff}
+.mono{font-family:var(--font-mono);font-feature-settings:var(--num)}
+.amber{color:var(--elephant)}.blue{color:var(--herd)}.flag{color:var(--flag)}.muted{color:var(--muted)}
+h1,h2,h3{font-family:var(--font-display);letter-spacing:-.025em;line-height:1.02;margin:0}
+h1{font-size:112px;font-weight:800}
+h2{font-size:84px;font-weight:800}
+h3{font-size:34px;font-weight:700;letter-spacing:-.015em}
+p{margin:0}
+
+/* ── stage ─────────────────────────────────────────────────────────────────── */
+#viewport{position:fixed;inset:0;display:block;background:var(--bg)}
+#stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0}
+.slide{position:absolute;inset:0;padding:96px 120px 120px;display:none;background:var(--bg)}
+.slide.active{display:block}
+@media (prefers-reduced-motion:no-preference){
+  .slide.active{animation:slidein .42s var(--ease)}
+  @keyframes slidein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+}
+.slide::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(1100px 600px at 82% -10%, rgba(255,176,32,.08), transparent 60%),radial-gradient(900px 520px at 6% 20%, rgba(76,154,255,.07), transparent 60%)}
+.slide > *{position:relative}
+.kicker{font-family:var(--font-mono);font-size:20px;letter-spacing:.1em;text-transform:uppercase;color:var(--elephant);margin-bottom:28px}
+.lede{font-size:30px;line-height:1.45;color:var(--muted);max-width:1300px;margin-top:28px}
+.lede b{color:var(--text);font-weight:600}
+
+/* chrome */
+#chrome{position:absolute;left:0;right:0;bottom:0;height:72px;padding:0 120px;z-index:5;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:18px;color:var(--muted);pointer-events:none}
+#chrome .l{display:flex;gap:22px;align-items:center}
+#chrome .ver{color:var(--elephant)}
+#chrome .prog{position:absolute;left:0;bottom:0;height:3px;background:var(--elephant);transition:width var(--t-med) var(--ease)}
+.brandmark{display:inline-flex;align-items:center;gap:12px;font-family:var(--font-display);font-weight:700;color:var(--text);font-size:20px}
+.brandmark svg,.brandmark img{width:26px;height:26px;border-radius:6px}
+
+/* components */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:36px 40px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+.chip{display:inline-flex;align-items:center;gap:10px;padding:8px 18px;border-radius:999px;font-family:var(--font-mono);font-size:18px;border:1px solid var(--border);color:var(--muted)}
+.chip.flag{border-color:rgba(255,92,92,.6);color:var(--flag)}
+.chip.amber{border-color:rgba(255,176,32,.6);color:var(--elephant)}
+.stat{font-family:var(--font-display);font-weight:800;letter-spacing:-.03em;line-height:1;font-feature-settings:var(--num)}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:16px 14px;border-bottom:1px solid var(--border);font-size:24px;vertical-align:top}
+th{font-family:var(--font-mono);font-size:16px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+td.num,th.num{text-align:right;font-feature-settings:var(--num)}
+pre{margin:0;font-family:var(--font-mono);font-size:20px;line-height:1.55;background:#0B0E14;border:1px solid var(--border);border-radius:18px;padding:28px 32px;color:#B9C4D2;overflow:hidden}
+pre .c{color:#7E8CA0}pre .k{color:#FFD27A}pre .s{color:#8ec0ff}pre .key{color:#8B98A9}
+pre .del{color:#FF8A8A;background:rgba(255,92,92,.08);display:block}
+pre .add{color:#8CE99A;background:rgba(140,233,154,.08);display:block}
+pre mark{background:rgba(255,176,32,.16);color:#FFD27A;border-radius:4px;padding:0 4px;outline:1px solid rgba(255,176,32,.35)}
+.term{background:#0B0E14;border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.term .bar{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--surface)}
+.term .bar i{width:13px;height:13px;border-radius:50%;background:#2c3646;display:inline-block}
+.term .bar span{margin-left:10px;font-family:var(--font-mono);font-size:16px;color:var(--muted)}
+.term pre{border:0;border-radius:0}
+.runs .term pre{font-size:23px;line-height:1.6;padding:32px 36px}
+.term .p{color:#7E8CA0}.term .cmd{color:#E6EDF3}.term .hi{color:#FFD27A}.term .ok{color:#8CE99A}.term .dim{color:#7E8CA0}
+
+/* svg shared with the landing page */
+svg.split{width:100%;height:auto;font-family:var(--font-mono)}
+svg.split .lbl{fill:#8B98A9;font-size:17px}
+svg.split .flag{fill:#FF5C5C;font-size:16px;font-weight:600}
+svg.split .inbar{fill:#0B0E14;font-size:17px;font-weight:600}
+@media (prefers-reduced-motion:no-preference){
+  svg.split .row{transform-origin:0 60px;transform:scaleY(0);opacity:0}
+  svg.split.go .row{animation:rise 1.1s var(--ease) forwards}
+  svg.split.go .row-buy{animation-delay:.35s}
+  @keyframes rise{from{transform:scaleY(0);opacity:0}to{transform:scaleY(1);opacity:1}}
+}
+svg.quadrant{width:100%;height:auto;font-family:var(--font-mono)}
+svg.quadrant .grid{stroke:#243044;stroke-width:1}
+svg.quadrant .mid{stroke:#5E6C80;stroke-width:1.5;stroke-dasharray:4 5}
+svg.quadrant .tick{fill:#8B98A9;font-size:12px}
+svg.quadrant .axis{fill:#8B98A9;font-size:13px}
+svg.quadrant .quad{fill:#E6EDF3;font-size:14px;font-weight:600;font-family:var(--font-display)}
+svg.quadrant .quad.sub{fill:#8B98A9;font-size:12px;font-family:var(--font-mono);font-weight:400}
+svg.quadrant .pt .halo{fill:#FFB020;opacity:0}
+svg.quadrant .ptlbl{fill:#E6EDF3;font-size:15px;font-weight:600;font-family:var(--font-display)}
+svg.quadrant .ptsub{fill:#8B98A9;font-size:12px}
+
+/* cover */
+.cover{display:grid;grid-template-columns:1.15fr .85fr;align-items:center;gap:60px;height:100%}
+.cover .mark{width:100%;max-width:560px;justify-self:center;filter:drop-shadow(0 30px 60px rgba(0,0,0,.6))}
+.cover .mark svg{width:100%;height:auto;border-radius:22%}
+.cover h1{font-size:140px}
+.cover .tag{font-size:40px;color:var(--muted);margin-top:22px;font-family:var(--font-display);font-weight:600;letter-spacing:-.01em}
+.cover .badges{display:flex;gap:14px;margin-top:44px;flex-wrap:wrap}
+
+/* hook */
+.hook .big{font-size:420px;color:var(--flag)}
+.hook .cap{font-family:var(--font-mono);font-size:24px;color:var(--muted);margin-top:-10px}
+.hook .then{font-size:56px;font-family:var(--font-display);font-weight:700;letter-spacing:-.02em;line-height:1.15;margin-top:44px;max-width:1500px}
+
+/* structures */
+.struct .tag{font-family:var(--font-mono);font-size:18px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:18px}
+.struct svg{width:100%;height:auto}
+.struct .kv{display:grid;grid-template-columns:auto 1fr;gap:10px 24px;font-family:var(--font-mono);font-size:24px;margin-top:22px}
+.struct .kv span:nth-child(odd){color:var(--muted)}
+
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.step .n{font-family:var(--font-mono);color:var(--elephant);font-size:18px;letter-spacing:.1em;margin-bottom:14px}
+.step p{color:var(--muted);font-size:24px;line-height:1.45;margin-top:12px}
+.step code{font-family:var(--font-mono);color:var(--herd);font-size:21px;background:rgba(76,154,255,.08);padding:2px 8px;border-radius:6px}
+
+/* number */
+.number{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:start}
+.number .netline{display:flex;justify-content:space-between;align-items:center;padding:0 0 18px;border-bottom:1px solid var(--border);margin-bottom:6px}
+.number .netline .v{font-family:var(--font-mono);font-size:40px;color:var(--flag);font-weight:600}
+.number .side{font-family:var(--font-display);font-weight:700;font-size:30px}
+.number .stat{font-size:88px}
+.number .sub{font-family:var(--font-mono);font-size:18px;color:var(--muted);margin-top:8px}
+.number tr.sell td{background:linear-gradient(90deg,rgba(255,176,32,.07),transparent)}
+
+.strip{display:grid;grid-template-columns:.9fr 1.3fr 1fr;gap:24px;margin-top:26px}
+.strip .cell{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px 30px}
+.strip .cell.sell{background:linear-gradient(180deg,rgba(255,176,32,.08),var(--surface));border-color:rgba(255,176,32,.35)}
+.strip .k{font-family:var(--font-mono);font-size:17px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.strip .v{font-family:var(--font-display);font-weight:800;font-size:92px;letter-spacing:-.035em;line-height:1.05;font-feature-settings:var(--num);margin-top:6px}
+.strip .s{font-family:var(--font-mono);font-size:19px;color:var(--muted);margin-top:6px}
+svg.split.deck .lbl{font-size:22px}
+svg.split.deck .flag{font-size:22px}
+svg.split.deck .inbar{font-size:24px}
+svg.split.deck .row{transform-origin:0 80px}
+/* evidence */
+.ev{font-size:19px}
+.ev th,.ev td{padding:9px 12px;font-size:19px;white-space:nowrap}
+.ev td.n{color:var(--muted)}.ev td.run{color:var(--elephant)}
+.calc{margin-top:22px;font-family:var(--font-mono);font-size:24px;padding:20px 24px;border:1px dashed rgba(255,176,32,.5);border-radius:16px;background:rgba(255,176,32,.05)}
+.calc b{color:var(--elephant);font-weight:600}
+
+/* quadrant slide */
+.quad{display:grid;grid-template-columns:1.15fr .85fr;gap:44px;align-items:center}
+.quad .list{display:grid;gap:16px}
+.quad .row{display:grid;grid-template-columns:150px 1fr;gap:18px;align-items:baseline;padding:16px 22px;background:var(--surface);border:1px solid var(--border);border-radius:16px}
+.quad .row .nm{font-family:var(--font-display);font-weight:700;font-size:28px}
+.quad .row .nm small{display:block;font-family:var(--font-mono);font-weight:400;font-size:15px;color:var(--muted)}
+.quad .row .d{font-size:21px;color:var(--muted);line-height:1.4}
+.quad .row .d b{color:var(--text);font-weight:600}
+
+/* api */
+.findings{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:32px}
+.finding .k{font-family:var(--font-mono);font-size:17px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
+.finding .v{font-family:var(--font-display);font-weight:800;font-size:60px;letter-spacing:-.03em;line-height:1;margin-bottom:14px;font-feature-settings:var(--num)}
+.finding p{color:var(--muted);font-size:22px;line-height:1.4}
+table.api td code{font-family:var(--font-mono);font-size:21px;color:var(--herd)}
+table.api tr.engine td{background:linear-gradient(90deg,rgba(255,176,32,.07),transparent)}
+
+/* runs */
+.runs{display:grid;grid-template-columns:1.25fr .75fr;gap:40px;align-items:start}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:30px 30px}
+.metric .v{font-family:var(--font-display);font-weight:800;font-size:64px;letter-spacing:-.03em;line-height:1;font-feature-settings:var(--num)}
+.metric .k{font-family:var(--font-mono);font-size:16px;color:var(--muted);margin-top:10px;letter-spacing:.06em;text-transform:uppercase}
+
+/* limits */
+.limits{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:10px}
+.limit{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px 32px}
+.limit h3{font-size:30px;margin-bottom:10px}
+.limit p{color:var(--muted);font-size:23px;line-height:1.45}
+
+/* ask */
+.ask{display:grid;grid-template-columns:1.1fr .9fr;gap:60px;align-items:center;height:100%}
+.ask h2{font-size:104px}
+.ask .links{display:grid;gap:16px;margin-top:44px}
+.ask .links a{display:flex;justify-content:space-between;align-items:center;padding:22px 28px;border:1px solid var(--border);border-radius:18px;background:var(--surface);color:var(--text);font-size:26px;font-family:var(--font-display);font-weight:600;transition:border-color var(--t-fast),transform var(--t-fast) var(--ease)}
+.ask .links a:hover{border-color:var(--elephant);transform:translateY(-2px)}
+.ask .links a span{font-family:var(--font-mono);font-weight:400;font-size:19px;color:var(--muted)}
+.ask .closer{font-family:var(--font-display);font-weight:800;font-size:64px;letter-spacing:-.03em;line-height:1.05;color:var(--muted)}
+.ask .closer b{color:var(--elephant)}
+
+/* speaker notes / presenter */
+.speaker-notes{display:none}
+body.presenter #notes{display:block}
+#notes{display:none;position:fixed;left:0;right:0;bottom:0;height:22vh;background:rgba(11,14,20,.96);border-top:1px solid var(--elephant);color:var(--text);padding:18px 32px;font-size:clamp(14px,1.6vw,22px);line-height:1.5;overflow:auto;z-index:50;font-family:var(--font-body)}
+#notes .h{font-family:var(--font-mono);font-size:.8em;color:var(--elephant);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+body.presenter #chrome{opacity:.35}
+body.idle{cursor:none}
+
+/* overview */
+body.overview #viewport{display:none}
+#overview{display:none;position:fixed;inset:0;overflow:auto;padding:32px;background:var(--bg);z-index:40}
+body.overview #overview{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;align-content:start}
+#overview .thumb{position:relative;aspect-ratio:16/9;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface);cursor:pointer;transition:border-color var(--t-fast),transform var(--t-fast) var(--ease)}
+#overview .thumb:hover,#overview .thumb:focus-visible{border-color:var(--elephant);transform:translateY(-2px);outline:none}
+#overview .thumb.cur{border-color:var(--elephant)}
+#overview .thumb .n{position:absolute;left:10px;top:8px;font-family:var(--font-mono);font-size:12px;color:var(--elephant)}
+#overview .thumb .t{position:absolute;left:12px;right:12px;bottom:10px;font-family:var(--font-display);font-weight:700;font-size:clamp(12px,1.3vw,18px);letter-spacing:-.01em}
+
+/* keyboard hint (first slide only, fades) */
+#hint{position:fixed;right:24px;top:20px;font-family:var(--font-mono);font-size:13px;color:var(--muted);background:rgba(20,26,36,.85);border:1px solid var(--border);border-radius:999px;padding:8px 14px;z-index:30;transition:opacity .6s}
+#hint.gone{opacity:0;pointer-events:none}
+#hint kbd{color:var(--text)}
+
+/* Press C to toggle contrast debug mode */
+body.debug-contrast .contrast-check,body.debug-contrast p,body.debug-contrast h1,body.debug-contrast h2,body.debug-contrast h3,body.debug-contrast td,body.debug-contrast li{outline:1px solid rgba(255,92,92,.7)}
+
+a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--elephant);outline-offset:3px}
+
+/* ── print ─────────────────────────────────────────────────────────────────── */
+@page{size:16in 9in landscape;margin:0}
+@media print{
+  html,body{overflow:visible;height:auto;background:var(--bg)}
+  #viewport{position:static}
+  #stage{position:static;transform:none!important;width:1920px;height:auto}
+  .slide{display:block!important;position:relative;width:1920px;height:1080px;page-break-after:always;break-after:page;page-break-inside:avoid;break-inside:avoid;animation:none!important}
+  #chrome,#notes,#overview,#hint{display:none!important}
+  html,body,.slide{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<div id="hint"><kbd>→</kbd> next · <kbd>esc</kbd> overview · <kbd>p</kbd> notes</div>
+<div id="viewport">
+<div id="stage">
+
+<!-- 01 COVER ═══════════════════════════════════════════════════════════════════ -->
+<section class="slide" data-title="Cover">
+  <div class="cover">
+    <div>
+      <div class="brandmark"><img src="../assets/icon.svg" alt="" width="26" height="26">Elephant Tracks</div>
+      <h1 style="margin-top:36px">Net flow is a sum.<br>Summing is lossy.</h1>
+      <p class="tag">Split the swaps by maker. See what the sum destroyed.</p>
+      <div class="badges">
+        <span class="chip amber">Build with CMC · API Hackathon</span>
+        <span class="chip">Data &amp; Visualisation</span>
+        <span class="chip">{{version}}</span>
+      </div>
+    </div>
+    <div class="mark">{{icon_anim}}</div>
+  </div>
+  <aside class="speaker-notes">Every number in this deck comes from a keyless run of the script in the repo, and the receipts are committed. I will show you one wallet, one stablecoin, and a dashboard that called it balanced.</aside>
+</section>
+
+<!-- 02 HOOK ════════════════════════════════════════════════════════════════════ -->
+<section class="slide hook" data-title="The hook">
+  <div class="kicker">AUSD on Ethereum · {{ausd.swaps}} swaps · {{ausd.captured_short}}</div>
+  <div class="stat big">{{ausd.net}}</div>
+  <div class="cap">net flow — the only number a flow dashboard prints</div>
+  <p class="then">One address sold <span class="amber">{{ausd.sell_top_vol_m}}</span> in {{ausd.sell_top_swaps}} swaps — <span class="amber">{{ausd.sell_top_share}}</span> of the sell side — into <span class="blue">{{ausd.buy_wallets}}</span> different buying wallets.</p>
+  <aside class="speaker-notes">Plus two point one percent. Balanced. Same swaps, split by who made them: two-thirds of everything sold came from one wallet, and it was sold to two hundred and twelve people.</aside>
+</section>
+
+<!-- 03 PROBLEM ═════════════════════════════════════════════════════════════════ -->
+<section class="slide" data-title="The problem">
+  <div class="kicker">The problem</div>
+  <h2>Two opposite markets.<br>One identical number.</h2>
+  <div class="grid2" style="margin-top:44px">
+    <div class="card struct">
+      <div class="tag">A — one desk, a thousand buyers</div>
+      {{struct_a}}
+      <div class="kv"><span>net flow</span><span class="flag">0.0%</span><span>top seller's share</span><span class="amber">100%</span><span>top buyer's share</span><span class="blue">0.1%</span></div>
+    </div>
+    <div class="card struct">
+      <div class="tag">B — a thousand sellers, a thousand buyers</div>
+      {{struct_b}}
+      <div class="kv"><span>net flow</span><span class="flag">0.0%</span><span>top seller's share</span><span class="muted">0.1%</span><span>top buyer's share</span><span class="muted">0.1%</span></div>
+    </div>
+  </div>
+  <p class="lede">Marcus checks flow on Monday, reads "balanced", and holds — through a week of being distributed into. <b>Nothing recovers a split from a sum.</b></p>
+  <aside class="speaker-notes">A is distribution into retail. B is churn. Buy volume minus sell volume is zero in both, and it is zero for every mixture in between. The number is not wrong; it is incapable.</aside>
+</section>
+
+<!-- 04 MECHANISM ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" data-title="The mechanism">
+  <div class="kicker">The mechanism</div>
+  <h2>Never sum. Split the tape by maker.</h2>
+  <div class="steps" style="margin-top:44px">
+    <div class="card step"><div class="n">01 · PULL</div><h3>Individual swaps</h3><p><code>/v1/dex/tokens/transactions</code>, keyless. Per swap: side <code>tp</code>, USD value <code>v</code>, maker <code>ma</code>.</p></div>
+    <div class="card step"><div class="n">02 · SPLIT</div><h3>Partition on the side</h3><p>Buys in one bucket, sells in the other. Net flow is computed too — only so it can be shown losing.</p></div>
+    <div class="card step"><div class="n">03 · ATTRIBUTE</div><h3>Sum per wallet, take the top</h3><p>Per side, <code>Σ v</code> grouped by <code>ma</code>. The largest wallet's share of its side is the number.</p></div>
+  </div>
+  <pre style="margin-top:36px"><span class="c"># scripts/split_tape.py — split(), the whole product</span>
+<span class="k">by_maker</span>[side][swap.ma] += swap.v                    <span class="c"># per side, per wallet</span>
+<span class="k">top_share</span>[side] = max(by_maker[side].values()) / Σ side.v
+<span class="k">net_flow</span> = (Σ buys.v − Σ sells.v) / (Σ buys.v + Σ sells.v)   <span class="c"># shown beside it, losing</span></pre>
+  <aside class="speaker-notes">Three fields, one grouping, one division. No model, no threshold, no wallet labels. The maker address is what turns "one desk versus a crowd" from an inference into a count.</aside>
+</section>
+
+<!-- 05 THE NUMBER ══════════════════════════════════════════════════════════════ -->
+<section class="slide" data-title="The number">
+  <div class="kicker">The number · {{ausd.symbol}} · {{ausd.platform}} · {{ausd.swaps}} swaps · {{ausd.captured_short}}</div>
+  {{split_svg_deck}}
+  <div class="strip">
+    <div class="cell"><div class="k">net flow</div><div class="v flag">{{ausd.net}}</div><div class="s">the only number a dashboard prints</div></div>
+    <div class="cell sell"><div class="k">sell · {{ausd.sells}} swaps · {{ausd.sell_wallets}} wallets</div><div class="v amber">{{ausd.sell_top_share}}</div><div class="s">one wallet · {{ausd.sell_top_vol}} in {{ausd.sell_top_swaps}} swaps</div></div>
+    <div class="cell"><div class="k">buy · {{ausd.buys}} swaps · {{ausd.buy_wallets}} wallets</div><div class="v blue">{{ausd.buy_top_share}}</div><div class="s">largest wallet · {{ausd.buy_top_vol}} in {{ausd.buy_top_swaps}} swaps</div></div>
+  </div>
+  <aside class="speaker-notes">This is the slide to remember. The grey bar is what a dashboard shows. Underneath it, the same eight hundred swaps attributed to the wallets that made them. The sell side is mostly one amber block. The buy side is two hundred and twelve slivers.</aside>
+</section>
+
+<!-- 06 HAND CHECK ══════════════════════════════════════════════════════════════ -->
+<section class="slide" data-title="Check it by hand">
+  <div class="kicker">Check it by hand — thirty seconds</div>
+  <div class="grid2" style="grid-template-columns:.95fr 1.05fr;align-items:start">
+    <div>
+      <h3 style="margin-bottom:18px">The receipt row, verbatim</h3>
+      <pre style="font-size:17px;line-height:1.5;max-height:600px">{{json_panel_short}}</pre>
+      <div class="calc"><b>sell_top_vol ÷ sell_vol</b> = {{ausd.share_calc}} → <b>{{ausd.sell_top_share}}</b></div>
+    </div>
+    <div>
+      <h3 style="margin-bottom:18px">The {{evidence_n}} swaps, raw, with a running sum</h3>
+      <table class="ev">
+        <thead><tr><th>#</th><th>time UTC</th><th>tx</th><th>venue</th><th class="num">v (USD)</th><th class="num">running</th></tr></thead>
+        <tbody>{{evidence_rows_short}}</tbody>
+        <tfoot><tr><td colspan="5" style="color:var(--text);font-weight:600">Σ v = sell_top_vol</td><td class="num mono" style="color:var(--elephant);font-weight:600">{{evidence_sum}}</td></tr></tfoot>
+      </table>
+      <p class="muted" style="font-size:19px;margin-top:16px">Every swap in the window with <span class="mono">ma</span> = the top seller and <span class="mono">tp</span> = sell. <span class="mono">v</span> values as returned by the API; full file in <span class="mono">docs/proof/ausd.json</span>.</p>
+    </div>
+  </div>
+  <aside class="speaker-notes">Nothing here needs trusting. Three marked fields, one division. And the twelve raw swap records behind the numerator, so you can add them up yourself.</aside>
+</section>
+
+<!-- 07 QUADRANT ════════════════════════════════════════════════════════════════ -->
+<section class="slide" data-title="The map">
+  <div class="kicker">The map · four tokens, all within ±5% of balanced</div>
+  <div class="quad">
+    <div>{{quadrant_svg}}</div>
+    <div class="list">
+      <div class="row"><div class="nm">{{ausd.symbol}}<small>{{ausd.platform}} · net {{ausd.net}}</small></div><div class="d"><b>Distribution.</b> Sell {{ausd.sell_top_share}} one wallet · buy {{ausd.buy_wallets}} wallets</div></div>
+      <div class="row"><div class="nm">{{shfl.symbol}}<small>{{shfl.platform}} · net {{shfl.net}}</small></div><div class="d"><b>Accumulation.</b> Buy {{shfl.buy_top_share}} one wallet, {{shfl.buy_top_swaps}} swaps · sell {{shfl.sell_wallets}} wallets</div></div>
+      <div class="row"><div class="nm">{{bingo.symbol}}<small>{{bingo.platform}} · net {{bingo.net}}</small></div><div class="d"><b>Wash-shaped.</b> {{bingo.sell_top_share}} / {{bingo.buy_top_share}} — the same wallet on both sides</div></div>
+      <div class="row"><div class="nm">{{churn.symbol}}<small>{{churn.platform}} · net {{churn.net}}</small></div><div class="d"><b>Churn.</b> {{churn.sell_top_share}} / {{churn.buy_top_share}} — {{churn.sell_wallets}} sellers, {{churn.buy_wallets}} buyers</div></div>
+    </div>
+  </div>
+  <aside class="speaker-notes">Same script, four tokens, every one of them "balanced". Plot who owns each side and they land in four different corners. Only the bottom-left one was actually balanced.</aside>
+</section>
+
+<!-- 08 API ═════════════════════════════════════════════════════════════════════ -->
+<section class="slide" data-title="The API">
+  <div class="kicker">The API</div>
+  <h2 style="font-size:64px">One neglected endpoint is the engine.</h2>
+  <div class="card" style="margin-top:28px;padding:6px 28px">
+    <table class="api">
+      <thead><tr><th>endpoint</th><th>role</th><th>key</th></tr></thead>
+      <tbody>
+        <tr class="engine"><td><code>/v1/dex/tokens/transactions</code></td><td>Per-swap <span class="mono">tp</span>, <span class="mono">v</span>, <span class="mono">ma</span> · cursor on <span class="mono">data.lastId</span></td><td>none</td></tr>
+        <tr><td><code>/v4/dex/spot-pairs/latest</code></td><td>Universe enumeration for the sweep</td><td>none</td></tr>
+        <tr><td><code>/v4/dex/pairs/quotes/latest</code></td><td>Liquidity context — its 24h buy/sell volumes deliberately unused</td><td>none</td></tr>
+        <tr><td><code>/v1/dex/holders/count</code></td><td>Offline holder-count collector, not on the judged path</td><td>Startup</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="findings">
+    <div class="card finding"><div class="k">pagination</div><div class="v amber">100 → 800</div><p>The cursor is <span class="mono">data.lastId</span> on the envelope, not on the last swap. Fixing that turned a 100-swap window into 800 in eight calls.</p></div>
+    <div class="card finding"><div class="k">identity</div><div class="v">89 / 91 / 100</div><p>Distinct <span class="mono">tx</span> / <span class="mono">lgid</span> / swaps on one page. Neither is a key alone; the pair is. Dedup on <span class="mono">tx</span> dropped 11%.</p></div>
+    <div class="card finding"><div class="k">aggregate fields</div><div class="v flag">6 / 200</div><p><span class="mono">24h_buy + 24h_sell</span> reconciled with <span class="mono">volume_24h</span> on six pairs of 200. So: individual swaps, never the aggregate.</p></div>
+  </div>
+  <aside class="speaker-notes">Three things we found by using the API hard rather than reading about it. The pagination one matters most: every number in this project before September seventh came from a single page, and the fix is one line. All three are written up for the CMC team in FEEDBACK.md.</aside>
+</section>
+
+<!-- 09 IT RUNS ═════════════════════════════════════════════════════════════════ -->
+<section class="slide" data-title="It runs">
+  <div class="kicker">It runs · keyless · no install</div>
+  <div class="runs">
+    <div class="term">
+      <div class="bar"><i></i><i></i><i></i><span>elephant-tracks</span></div>
+      <pre><span class="p">$</span> <span class="cmd">python3 scripts/split_tape.py --address {{ausd.addr_short}} --symbol AUSD --pages 8</span>
+
+<span class="dim">splitting the tape — keyless, 8 page(s) x 100 swaps per token</span>
+
+<span class="dim">{{ausd.table_head_short}}</span>
+<span class="dim">{{ausd.table_row_short}}</span><span class="hi">{{ausd.table_row_hi}}</span><span class="dim">{{ausd.table_row_tail}}</span>
+
+<span class="dim">HERO — rule: max top-maker share of either side among |net flow| &lt; 5.0%</span>
+<span class="hi">  AUSD: one wallet is {{ausd.sell_top_share}} of the sell side</span>
+<span class="hi">        while net flow reads {{ausd.net}}</span>
+<span class="dim">  sell: {{ausd.sell_top_vol}} in {{ausd.sell_top_swaps}} swaps from {{ausd.sell_top_maker_short}}</span>
+<span class="dim">  buy:  {{ausd.buys}} swaps from {{ausd.buy_wallets}} distinct wallets</span>
+
+<span class="ok">wrote ausd.json  ({{ausd.wall}}s wall clock, 0 credits — keyless)</span></pre>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="v">{{ausd.wall}}<span style="font-size:28px"> s</span></div><div class="k">800 swaps · 8 calls</div></div>
+      <div class="metric"><div class="v">0</div><div class="k">credits · no API key</div></div>
+      <div class="metric"><div class="v">21</div><div class="k">tests · 4 against live CMC</div></div>
+      <div class="metric"><div class="v">2,000</div><div class="k">property cases · 0 failing</div></div>
+      <div class="metric" style="grid-column:1/-1"><div class="v" style="font-size:34px">CI runs the real split</div><div class="k">every push · no secret configured · stdlib only</div></div>
+    </div>
+  </div>
+  <aside class="speaker-notes">This is the judged capability. Stdlib Python, a keyless endpoint, a clean machine. The property test is the one worth knowing about: two thousand generated tapes, and the maker share can never escape its own denominator.</aside>
+</section>
+
+<!-- 10 LIMITS ══════════════════════════════════════════════════════════════════ -->
+<section class="slide" data-title="Honest limits">
+  <div class="kicker">Honest limits</div>
+  <h2 style="font-size:64px">What this is not.</h2>
+  <div class="limits" style="margin-top:32px">
+    <div class="limit"><h3>Not a live page</h3><p>CMC sends no <span class="mono">Access-Control-Allow-Origin</span>, so the site is a dated snapshot with receipts. The live thing is the CLI.</p></div>
+    <div class="limit"><h3>A wallet is not an entity</h3><p>One entity can span wallets — the share is a floor. A router can pool many users into one maker — it inflates. We claim the address-level number, nothing more.</p></div>
+    <div class="limit"><h3>A window, not a day</h3><p>The most recent {{ausd.swaps}} swaps at capture — days for a stablecoin, minutes for a meme coin. Rows failing the published floors are shown with the reason, never hidden.</p></div>
+    <div class="limit"><h3>Ticket size was retired</h3><p>At flat net flow the ticket ratio equals the count ratio — one quantity measured twice, best real value 5.2×. It stays as a column, not the headline.</p></div>
+  </div>
+  <aside class="speaker-notes">The first version of this project headlined ticket-size asymmetry. A wide sweep proved it degenerate at exactly the net-flow band we care about, so it was retired and the maker share promoted. The deck says so because the repo history says so.</aside>
+</section>
+
+<!-- 11 THE ASK ═════════════════════════════════════════════════════════════════ -->
+<section class="slide" data-title="The ask">
+  <div class="ask">
+    <div>
+      <div class="kicker">The ask</div>
+      <h2>Run it before<br>you score it.</h2>
+      <div class="links">
+        <a href="{{repo}}" rel="noopener">Repository <span>github.com/edycutjong/elephant-tracks</span></a>
+        <a href="{{site}}/" rel="noopener">Landing page <span>elephant.edycu.dev</span></a>
+        <a href="{{repo}}/blob/main/JUDGE.md" rel="noopener">JUDGE.md <span>the 30-second path</span></a>
+      </div>
+    </div>
+    <div>
+      <div class="term">
+        <div class="bar"><i></i><i></i><i></i><span>thirty seconds, no key</span></div>
+        <pre style="font-size:21px"><span class="p">$</span> <span class="cmd">git clone {{repo}}.git</span>
+<span class="p">$</span> <span class="cmd">cd elephant-tracks</span>
+<span class="p">$</span> <span class="cmd">python3 scripts/split_tape.py \
+    --address {{ausd.address}} \
+    --symbol AUSD --pages 8</span></pre>
+      </div>
+      <p class="closer" style="margin-top:44px">Net flow is one number.<br><b>The split is four.</b></p>
+    </div>
+  </div>
+  <aside class="speaker-notes">One command, no key, no install. Your numbers will differ because the window moves; if the same wallet still dominates, the finding is persistent, and if it does not, you just watched the tape change. Either way you saw something the sum could not show you.</aside>
+</section>
+
+<div id="chrome">
+  <div class="l"><span class="brandmark"><img src="../assets/icon.svg" alt="" width="26" height="26">Elephant Tracks</span><span class="ver">{{version}}</span><span>captured {{ausd.captured_short}}</span></div>
+  <div class="r"><span id="counter">01 / 11</span></div>
+  <div class="prog" id="prog"></div>
+</div>
+</div>
+</div>
+
+<div id="notes"><div class="h">speaker notes</div><div id="notes-body"></div></div>
+<div id="overview" role="dialog" aria-label="Slide overview"></div>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var n = slides.length, cur = 0;
+  var stage = document.getElementById('stage');
+  var counter = document.getElementById('counter');
+  var prog = document.getElementById('prog');
+  var notes = document.getElementById('notes-body');
+  var overview = document.getElementById('overview');
+  var hint = document.getElementById('hint');
+
+  function pad(i){ return (i < 10 ? '0' : '') + i; }
+  function fit(){
+    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    var x = (window.innerWidth - 1920 * s) / 2, y = (window.innerHeight - 1080 * s) / 2;
+    stage.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + s + ')';
+  }
+  function show(i){
+    cur = Math.max(0, Math.min(n - 1, i));
+    slides.forEach(function(s, k){ s.classList.toggle('active', k === cur); });
+    counter.textContent = pad(cur + 1) + ' / ' + pad(n);
+    prog.style.width = ((cur + 1) / n * 100) + '%';
+    var a = slides[cur].querySelector('.speaker-notes');
+    notes.textContent = a ? a.textContent : '';
+    var sp = slides[cur].querySelector('svg.split');
+    if (sp) { sp.classList.remove('go'); void sp.getBoundingClientRect(); sp.classList.add('go'); }
+    if (cur > 0) hint.classList.add('gone');
+    try { history.replaceState(null, '', '#' + (cur + 1)); } catch (e) {}
+    overview.querySelectorAll('.thumb').forEach(function(t, k){ t.classList.toggle('cur', k === cur); });
+  }
+  function buildOverview(){
+    slides.forEach(function(s, k){
+      var t = document.createElement('div'); t.className = 'thumb'; t.tabIndex = 0; t.setAttribute('role','button');
+      t.innerHTML = '<span class="n">' + pad(k + 1) + '</span><span class="t">' + (s.getAttribute('data-title') || '') + '</span>';
+      t.addEventListener('click', function(){ document.body.classList.remove('overview'); show(k); });
+      t.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); t.click(); } });
+      overview.appendChild(t);
+    });
+  }
+  document.addEventListener('keydown', function(e){
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var k = e.key;
+    if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'Enter' && !document.body.classList.contains('overview')) { e.preventDefault(); show(cur + 1); }
+    else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'Backspace') { e.preventDefault(); show(cur - 1); }
+    else if (k === 'Home') { e.preventDefault(); show(0); }
+    else if (k === 'End') { e.preventDefault(); show(n - 1); }
+    else if (k === 'Escape') { document.body.classList.toggle('overview'); }
+    else if (k === 'p' || k === 'P') { document.body.classList.toggle('presenter'); }
+    else if (k === 'c' || k === 'C') { document.body.classList.toggle('debug-contrast'); }
+  });
+  // click / tap: right two-thirds advances, left third goes back
+  document.getElementById('viewport').addEventListener('click', function(e){
+    if (e.target.closest('a')) return;
+    show(e.clientX < window.innerWidth / 3 ? cur - 1 : cur + 1);
+  });
+  // idle cursor in presenter mode
+  var idleT; document.addEventListener('mousemove', function(){ document.body.classList.remove('idle'); clearTimeout(idleT); if (document.body.classList.contains('presenter')) idleT = setTimeout(function(){ document.body.classList.add('idle'); }, 2000); });
+  window.addEventListener('resize', fit);
+  buildOverview(); fit();
+  var h = parseInt((location.hash || '#1').slice(1), 10); show(isNaN(h) ? 0 : h - 1);
+  setTimeout(function(){ hint.classList.add('gone'); }, 6000);
+  if (reduce) { document.querySelectorAll('svg.split').forEach(function(s){ s.classList.add('go'); }); }
+})();
+</script>
+</body>
+</html>

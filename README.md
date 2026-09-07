@@ -251,7 +251,8 @@ make test-live   # 4 tests against the real CoinMarketCap contract
 make demo        # the judged capability, live, no key
 make bench       # deterministic p50/p95 over the captured tape
 make bench-live  # p50/p95 over the real keyless fetch
-make check       # refuse to ship a placeholder to a judge
+make site        # re-render the landing page and the deck from docs/proof/*.json
+make check       # refuse to ship a placeholder, or a page that drifted from its receipts
 make ci          # lint + test + audit + check
 ```
 
@@ -270,6 +271,13 @@ CI runs lint, tests, `pip-audit`, CodeQL, gitleaks, a placeholder gate, a determ
 **and a `live-api` job that executes the real split on every push.** It is keyless, so it runs on
 forks and PRs too. If CMC changes the contract, it breaks in CI rather than in front of a judge.
 
+**The landing page and the deck are generated, never hand-edited.** `scripts/render_site.py`
+renders `site/index.html` and `site/pitch/index.html` from the templates in
+`scripts/site_templates/` and the receipts in `docs/proof/`. Every figure on either page is a
+`{{token}}` filled from a committed JSON receipt; the render aborts if any slot is left unfilled,
+and CI re-renders both pages and fails on any diff. So no number on the web surface can be typed
+in by hand, none can be a placeholder, and none can drift from the run that produced it.
+
 ---
 
 ## 📁 Project Structure
@@ -280,11 +288,13 @@ elephant-tracks/
 │   ├── split_tape.py                 the product — fetch, split, rank, print
 │   ├── bench.py                      p50/p95, network and aggregation timed apart
 │   ├── seed.py                       capture a tape for replay (NOT the demo path)
+│   ├── render_site.py                renders site/ from docs/proof/*.json — no hand-typed numbers
+│   ├── site_templates/               landing.html, deck.html — {{token}} slots, fail if unfilled
 │   └── check_submission_readiness.py placeholder scanner
 ├── tests/
 │   ├── test_split.py                 the maths + live contract tests
 │   └── test_high_signal.py           regressions · property · boundary
-├── site/                             landing page (/) and pitch deck (/pitch) — dated snapshots
+├── site/                             generated: landing page (/) and deck (/pitch), dated snapshots
 ├── data/seed_tape.json               a recording. Nothing judged reads it.
 ├── docs/proof/                       ausd/shfl/bingo/gme.json receipts, live_run.json, benchmarks
 ├── JUDGE.md · DEMO.md · ARCHITECTURE.md · FEEDBACK.md
