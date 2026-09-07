@@ -164,7 +164,7 @@ details summary .chev{transition:transform var(--t-med) var(--ease);flex:none}
 details[open] summary .chev{transform:rotate(180deg)}
 details .body{padding:0 18px 18px;color:var(--muted);font-size:.98rem}
 table.ev{width:100%;border-collapse:collapse;font-size:.78rem}
-table.ev th,table.ev td{padding:8px 7px;border-bottom:1px solid var(--border);white-space:nowrap;text-align:left}
+table.ev th,table.ev td{padding:8px 4px;border-bottom:1px solid var(--border);white-space:nowrap;text-align:left}
 table.ev th{font-family:var(--font-mono);font-weight:500;color:var(--muted);text-transform:uppercase;font-size:.7rem;letter-spacing:.06em}
 table.ev td.n{color:var(--muted)}
 table.ev td.run{color:var(--elephant)}
@@ -1108,7 +1108,7 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
           <tr class="engine"><td><code>/public-api/v1/dex/tokens/transactions</code></td><td><b>The engine.</b> Per-swap <span class="mono">tp</span>, <span class="mono">v</span>, <span class="mono">ma</span>; cursor pagination via <span class="mono">data.lastId</span>.</td><td>none</td></tr>
           <tr><td><code>/public-api/v4/dex/spot-pairs/latest</code></td><td>Universe enumeration for the sweep that found the four tokens above.</td><td>none</td></tr>
           <tr><td><code>/public-api/v4/dex/pairs/quotes/latest</code></td><td>Liquidity context. Its <span class="mono">24h_buy_volume</span> / <span class="mono">24h_sell_volume</span> are deliberately <em>not</em> used — see below.</td><td>none</td></tr>
-          <tr><td><code>/v1/dex/holders/count</code></td><td>Offline holder series, kitchen-side only. Not on the judged path.</td><td>Startup</td></tr>
+          <tr><td><code>/v1/dex/holders/count</code></td><td>Offline holder-count collector. Not on the judged path.</td><td>Startup</td></tr>
         </tbody>
       </table>
       </div>
