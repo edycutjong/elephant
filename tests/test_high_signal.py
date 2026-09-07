@@ -490,7 +490,7 @@ def test_the_receipt_says_which_path_produced_it(monkeypatch, tmp_path, capsys):
     split_tape.main()
     out = capsys.readouterr().out
     assert "keyed via $CMC_PRO_API_KEY" in out.splitlines()[0]
-    assert "1 credits — keyed via $CMC_PRO_API_KEY" in out.splitlines()[-1]
+    assert "1 credit — keyed via $CMC_PRO_API_KEY" in out.splitlines()[-1]
     receipt = json.loads(out_path.read_text())
     assert receipt["credits_used"] == 1
     assert receipt["auth"].startswith("X-CMC_PRO_API_KEY from $CMC_PRO_API_KEY")
@@ -530,8 +530,10 @@ def test_keyed_escape_hatch_reaches_the_keyed_endpoint_when_a_key_is_exported():
     """The fallback for a throttled IP, proven against the real keyed endpoint.
 
     Skipped, not failed, when no key is exported: the default path needs none and CI
-    configures none. With one exported it must answer with the same contract and report the
-    credits the envelope charged, so a keyed run is never mistaken for a free one.
+    configures none. With one exported it must answer with the same contract and carry the
+    envelope's own `credit_count` — which CMC reports as 1, or as 0 on a cached hit (observed
+    2026-09-07: one of three identical keyed calls came back `credit_count: 0`). The receipt
+    mirrors the envelope rather than asserting a price CMC does not always charge.
     """
     key, var = split_tape.api_key()
     if not key:
@@ -539,4 +541,4 @@ def test_keyed_escape_hatch_reaches_the_keyed_endpoint_when_a_key_is_exported():
     swaps, meta = pull_swaps(UNI, pages=1)
     assert meta["error"] is None, f"keyed fetch via ${var} failed: {meta['error']}"
     assert swaps and any(s.get("tp") in ("buy", "sell") for s in swaps)
-    assert meta["credits"] >= 1, "the keyed envelope reports what it charged"
+    assert isinstance(meta["credits"], int) and meta["credits"] >= 0

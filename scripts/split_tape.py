@@ -158,6 +158,14 @@ def get(path, retries=RETRIES, **params):
     return {"_err": last, "_throttled": True}
 
 
+def _clip(text, width):
+    """Cut at a word boundary with an ellipsis, so a message is never sliced mid-word."""
+    if len(text) <= width:
+        return text
+    cut = text[: width - 1].rsplit(" ", 1)[0]
+    return cut + "…"
+
+
 def throttle_advice(first_error):
     """What happened and what to do, for a run the rate limit killed outright.
 
@@ -396,7 +404,7 @@ def main():
         if meta["error"]:
             # An API failure is an API failure. Never let it read as a property of the token.
             errors.append((sym, meta["error"], meta.get("throttled", False)))
-            print(f"{sym:7}{'':>7}   API error — {meta['error'][:69]}")
+            print(f"{sym:7}{'':>7}   API error — {_clip(meta['error'], 69)}")
             continue
         r = split(swaps)
         if not r:
@@ -533,7 +541,8 @@ def main():
         }
         with open(a.json, "w") as fh:
             json.dump(payload, fh, indent=2, sort_keys=True)
-        cost = f"{credits} credits — keyed via ${key_var}" if key else "0 credits — keyless"
+        unit = "credit" if credits == 1 else "credits"
+        cost = f"{credits} {unit} — keyed via ${key_var}" if key else "0 credits — keyless"
         print(f"\nwrote {a.json}  ({elapsed:.1f}s wall clock, {cost})")
 
 
