@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Elephant Tracks — the tape says balanced; one wallet is {{ausd.sell_top_share_int}}% of the sell side</title>
-<meta name="description" content="Net flow is a sum, and summing is lossy. Elephant Tracks splits DEX swaps by maker address using CoinMarketCap's keyless transactions endpoint. AUSD read net flow {{ausd.net}} while one wallet sold {{ausd.sell_top_vol_m}} — {{ausd.sell_top_share}} of the sell side — into {{ausd.buy_wallets}} buying wallets.">
+<meta name="description" content="Elephant Tracks splits DEX swaps by maker, keyless, on CoinMarketCap's API. AUSD read a balanced {{ausd.net}} while one wallet was {{ausd.sell_top_share}} of the sell side.">
+<meta name="author" content="{{author}}">
 <link rel="canonical" href="{{site}}/">
 <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
 <meta name="theme-color" content="#0B0E14">
@@ -12,14 +13,17 @@
 <meta property="og:site_name" content="Elephant Tracks">
 <meta property="og:url" content="{{site}}/">
 <meta property="og:title" content="Elephant Tracks — the tape says balanced. One wallet is {{ausd.sell_top_share_int}}% of the sell side.">
-<meta property="og:description" content="Net flow is a sum, and summing is lossy. Split the swaps by maker and the balanced number turns into one seller and {{ausd.buy_wallets}} buyers. Keyless, from CoinMarketCap's DEX API.">
-<meta property="og:image" content="{{site}}/assets/og-image.png?v=20260907">
-<meta property="og:image:width" content="2400">
-<meta property="og:image:height" content="1260">
+<meta property="og:description" content="Net flow read {{ausd.net}}; one wallet was {{ausd.sell_top_share}} of the sell side. Split by maker, keyless, from CoinMarketCap's DEX API.">
+<meta property="og:image" content="{{site}}/assets/og-image.png?v={{og.v}}">
+<meta property="og:image:width" content="{{og.w}}">
+<meta property="og:image:height" content="{{og.h}}">
+<meta property="og:image:alt" content="Elephant Tracks — the tape says balanced; the split says one desk. One tall amber block beside a scatter of small blue ones.">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="{{x_handle}}">
+<meta name="twitter:creator" content="{{x_handle}}">
 <meta name="twitter:title" content="Elephant Tracks — the tape says balanced. One wallet is {{ausd.sell_top_share_int}}% of the sell side.">
 <meta name="twitter:description" content="Net flow is a sum, and summing is lossy. Split the swaps by maker. Keyless, from CoinMarketCap's DEX API.">
-<meta name="twitter:image" content="{{site}}/assets/og-image.png?v=20260907">
+<meta name="twitter:image" content="{{site}}/assets/og-image.png?v={{og.v}}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">

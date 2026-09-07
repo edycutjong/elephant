@@ -11,8 +11,10 @@ and a number can never be typed in by hand. The HTML under site/ is generated ou
 template or the receipt, never the page.
 """
 
+import hashlib
 import json
 import re
+import struct
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -26,6 +28,14 @@ REPO = "https://github.com/edycutjong/elephant"
 SITE_URL = "https://elephant.edycu.dev"
 EVENT = "https://dorahacks.io/hackathon/coinmarketcap-api-202609/detail"
 VERSION = "v0.0.0-dev"
+# the human behind the page: <meta name="author"> and the card byline on X
+AUTHOR = "Edy Cu"
+X_HANDLE = "@edycutjong"
+# the social card. Every platform resamples to 1200x630 and caches by URL, so the file is
+# shipped at exactly that size and the URL carries a hash of its bytes: a regenerated image
+# gets a new URL by construction, and a stale card can never be served for a fresh file.
+OG_IMAGE = SITE / "assets" / "og-image.png"
+OG_SIZE = (1200, 630)
 SVG_NS = 'xmlns="http://www.w3.org/2000/svg"'
 MONO = "JetBrains Mono, monospace"
 # no platform tag exists yet for these — an honest fallback, never faked
@@ -57,6 +67,23 @@ PLATFORM_FALLBACK = {
 
 def load(sym):
     return json.loads((PROOF / f"{sym.lower()}.json").read_text())
+
+
+def png_size(path):
+    """Width and height straight from the PNG header (IHDR), so the page can only declare
+    the dimensions the file actually has."""
+    head = path.read_bytes()[:24]
+    if head[:8] != b"\x89PNG\r\n\x1a\n" or head[12:16] != b"IHDR":
+        sys.exit(f"{path.relative_to(BUILD)} is not a PNG")
+    return struct.unpack(">II", head[16:24])
+
+
+def og_ctx():
+    w, h = png_size(OG_IMAGE)
+    if (w, h) != OG_SIZE:
+        sys.exit(f"og-image.png is {w}x{h}; the card must be exactly {OG_SIZE[0]}x{OG_SIZE[1]}")
+    digest = hashlib.sha1(OG_IMAGE.read_bytes()).hexdigest()[:8]
+    return {"og.w": w, "og.h": h, "og.v": digest, "author": AUTHOR, "x_handle": X_HANDLE}
 
 
 def money(x, dp=0):
@@ -560,6 +587,7 @@ def main():
     share = A["sell_top_vol"] / A["sell_vol"]
     replay = json.loads((PROOF / "bench_replay.json").read_text())["split"]
     live = json.loads((PROOF / "bench_live.json").read_text())["fetch"]
+    ctx.update(og_ctx())
     ctx.update(
         {
             "bench.replay_p50": f"{replay['p50']:.3f}",
