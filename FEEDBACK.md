@@ -75,19 +75,26 @@ trial. **Document the cap, or clamp instead of rejecting.**
 
 ---
 
-## 4. Cursor pagination on the swaps endpoint is hard to use correctly
+## 4. The pagination cursor is on the envelope, and nothing says so
 
 **Observed 2026-09-03 and 2026-09-07 · severity: medium**
 
-There is a cursor, but the parameter name and the field it should be fed from are not obvious.
-We pass `lastId` and read the next cursor from the last swap in the batch, trying `txId` then
-`lgid`, because no single documented field pairs with the request parameter. Our first
-implementation did not advance the cursor at all and silently re-fetched page one — which we
-only caught because we de-duplicate on `tx`.
+The request parameter is `lastId`. The value to feed it is `data.lastId` on the **response
+envelope** — not a field on the last swap. Every swap carries a `txId` and an `lgid`, both of which
+look like cursors and neither of which is one. Our first paginator read `txId` off the last swap,
+the server accepted it without complaint, and page 2 quietly returned page 1 again. Every number in
+this project before 2026-09-07 came from a single 100-swap window because of that. Read from the
+envelope, the cursor advances cleanly: 864 unique swaps over 10 pages on one token.
 
-**Why it matters:** a paginator that silently repeats page one produces a plausible-looking
-result set that is wrong. **Name the request parameter and the response field it comes from on
-the same documentation page, or return an explicit `next_cursor`.**
+A second identity trap sits next to it: **neither `tx` nor `lgid` is a unique swap key.** One page
+of 100 swaps carried 89 distinct `tx` (a routed trade emits several swaps under one hash) and 91
+distinct `lgid` (log indexes repeat across transactions). De-duplicating on `tx` alone silently
+discards ~11% of real swaps. The pair `(tx, lgid)` is the identity.
+
+**Why it matters:** an accepted-but-wrong cursor produces a plausible-looking result set that is
+wrong, with no error to catch. **Document `data.lastId` beside the `lastId` parameter on the same
+page, reject a cursor value that is not one of yours, and state which field pair identifies a
+swap.**
 
 ---
 

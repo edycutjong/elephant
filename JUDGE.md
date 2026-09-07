@@ -4,18 +4,23 @@ Everything you need in one page. No setup, no key, no account.
 
 ## The claim
 
-**Net flow is a sum, and summing is lossy. Elephant Tracks splits the tape back apart — per-side
-average ticket and per-side wallet count — and shows you the market structure the summed number
-mathematically cannot contain.**
+**Net flow is a sum, and summing is lossy. Elephant Tracks splits the tape back apart — per side,
+how much of it is one wallet — and shows you the market structure the summed number mathematically
+cannot contain.**
 
 ## The 30-second path
 
-There is no hosted app to click. This is a command-line tool, and that is the whole install:
+The judged capability is a command-line tool, and that is the whole install:
 
 ```bash
-git clone <this repo> && cd elephant-tracks
-python3 scripts/split_tape.py
+git clone https://github.com/edycutjong/elephant-tracks.git && cd elephant-tracks
+python3 scripts/split_tape.py --address 0x00000000efe302beaa2b3e6e1b18d08d69a9012a --symbol AUSD --pages 8 --json ausd.json
 ```
+
+The landing page at **[elephant.edycu.dev](https://elephant.edycu.dev)** and the deck at
+**[/pitch](https://elephant.edycu.dev/pitch/)** show the same receipt with the raw swaps beside it,
+so the number can be checked by hand in thirty seconds. They are dated snapshots — CoinMarketCap
+sends no CORS header, so a static page cannot call it — and the command above is the live path.
 
 1. **Nothing else is required.** No `pip install` (the file is stdlib-only), no `.env`, no API key,
    no signup. If either step above needs more than what is printed, that is a bug — file it.
@@ -23,33 +28,41 @@ python3 scripts/split_tape.py
    reason. That is the product refusing to hand you a number it does not trust.
 3. **Read the HERO block.** It names a token whose net flow reads balanced and whose split does not.
    The selection rule is printed above it, so you can check that it is a screen rather than a pick.
+   Run the bare `python3 scripts/split_tape.py` for the eight-token watchlist; when nothing reads
+   balanced it says so instead of widening the band.
 
 Full annotated transcript with the receipt: **[DEMO.md](DEMO.md)**.
 
-## Receipt — live run, 2026-09-07T05:09:23Z
+## Receipt — live run, 2026-09-07T07:00:52Z
 
 | | |
 |---|---|
-| Wall clock | **9.43 s** |
-| Swaps aggregated | **800** across 8 tokens |
+| Wall clock | **29.4 s** |
+| Swaps aggregated | **800** — AUSD on Ethereum, 8 pages |
 | API calls | 8 |
 | **Credits used** | **0** — keyless `/public-api` surface |
 | Credentials | none; run with every CMC env var explicitly unset |
-| Tests | **21** (17 offline, 4 live), 5 named after the defect they pin |
-| **Property verification** | **2,000 generated tapes, 0 failing** — `split()` never violated five invariants |
+| Tests | **25** (21 offline, 4 live), 7 named after the defect they pin |
+| **Property verification** | **2,000 generated tapes, 0 failing** — `split()` never violated six invariants |
 | Aggregation latency | p50 **0.026 ms** (p95 0.026 ms, n=200) |
 | Live fetch latency | p50 **1,403 ms** (p95 17,474 ms — one iteration sat through a throttle backoff) |
-| Raw receipts | [`docs/proof/live_run.json`](docs/proof/live_run.json) · [`bench_live.json`](docs/proof/bench_live.json) · [`bench_replay.json`](docs/proof/bench_replay.json) |
+| Raw receipts | [`docs/proof/ausd.json`](docs/proof/ausd.json) · [`shfl.json`](docs/proof/shfl.json) · [`bingo.json`](docs/proof/bingo.json) · [`gme.json`](docs/proof/gme.json) · [`live_run.json`](docs/proof/live_run.json) · [`bench_live.json`](docs/proof/bench_live.json) · [`bench_replay.json`](docs/proof/bench_replay.json) |
 
-The headline from that run: **CRV showed a 2.2× ticket asymmetry while its net flow read −0.1%.**
-69 sells averaging $296 from 40 wallets, against 31 buys averaging $657 from 22. Every flow
-dashboard renders −0.1% as "balanced."
+The headline from that run: **one wallet was 62.0% of AUSD's sell side — $25,459,824 in
+12 swaps — sold into 212 distinct buying wallets, while net flow read +2.1%.** Every flow
+dashboard renders +2.1% as "balanced." Check it: `sell_top_vol ÷ sell_vol` in the receipt row, or sum
+the 12 raw swaps in its `hero_evidence` block.
+
+The same script on three more balanced tokens gives the other three market structures a summed
+number cannot name: SHFL (one wallet 54.1% of the *buy* side against 425 sellers), BINGO (the same
+wallet 97.9% / 99.3% on both sides) and GME (2.9% / 3.7% — actually balanced).
 
 ## Reproduce
 
 ```bash
-python3 scripts/split_tape.py                    # the product, live, keyless
-make test                                        # 17 offline tests
+python3 scripts/split_tape.py --address 0x00000000efe302beaa2b3e6e1b18d08d69a9012a --symbol AUSD --pages 8 --json ausd.json   # the headline
+python3 scripts/split_tape.py                    # the watchlist, live, keyless
+make test                                        # 21 offline tests
 make test-live                                   # 4 tests against the real CMC contract
 pytest tests/test_high_signal.py -k invariants --hypothesis-show-statistics   # the 2,000
 ```
@@ -70,20 +83,24 @@ path reads it.** `scripts/split_tape.py` always fetches live and has no offline 
 **USD value** (`v`, verified as `a0 × t0pu == v`), and the **maker address** (`ma`).
 
 `ma` is the one that matters. Side and value give an average ticket, which is an inference about
-"one desk versus a crowd." The maker address makes it a **count**. Remove CoinMarketCap and
+"one desk versus a crowd." The maker address makes it a **measurement** — per side, sum `v` per
+`ma`, and the largest wallet's share of the side is the number. Remove CoinMarketCap and
 reproducing this needs a multi-chain swap indexer, a per-DEX pool registry, a wallet-labelling
 pipeline and a symbol-to-contract mapping service — four systems to recover what one keyless call
 returns.
 
 ## Honest limitations
 
-- **Effective depth is 100 swaps per token, not 24 hours.** The `lastId` cursor does not advance on
-  this endpoint, so page 2 returns page 1's swaps. `--pages` is there for when that is fixed.
+- **A run measures a window, not 24 hours.** Depth is `--pages` × 100; the receipts use 8 pages.
+  (Until 2026-09-07 our paginator read the cursor off the last swap instead of the envelope's
+  `data.lastId`, so earlier numbers came from a single page. Fixed and pinned by a test.)
+- **A wallet is not an entity.** One entity can span wallets (the share is a floor); a router can
+  pool many users into one maker (it inflates). The number is the address-level share, no more.
 - **The anonymous tier throttles**, and reports it as an HTTP 500 rather than a 429. Run the
   watchlist twice quickly and you will hit it; the tool backs off and retries instead of failing,
   so a throttled run is slow rather than broken.
-- **There is no web interface.** The judged capability is this CLI. A hosted surface is designed
-  (`/`, `/app`, `/pitch`) and not built — claiming one would be a lie.
+- **The web surface is a snapshot, not a live tool.** The landing page and deck carry dated receipts
+  with the command that produced them; a live token-input tool needs a CORS proxy and is not built.
 - **The 24h aggregate buy/sell volume fields are unusable** and deliberately unused: they reconcile
   with `volume_24h` on 6 of 200 sampled pairs. That finding is the reason this project computes from
   individual swaps, and it is written up for the CMC team in [FEEDBACK.md](FEEDBACK.md).
@@ -97,4 +114,6 @@ returns.
 | **API feedback for CMC** | [FEEDBACK.md](FEEDBACK.md) — five dated, evidenced findings |
 | **The product** | [`scripts/split_tape.py`](scripts/split_tape.py) — 200 lines, stdlib only |
 | **The tests** | [`tests/test_high_signal.py`](tests/test_high_signal.py) |
-| Live demo · video · BUIDL | not yet published — see the README for current status |
+| **Landing page** | [elephant.edycu.dev](https://elephant.edycu.dev) — the receipt beside its raw swaps |
+| **Pitch deck** | [elephant.edycu.dev/pitch](https://elephant.edycu.dev/pitch/) — 11 slides, arrow keys |
+| Video · BUIDL | not yet published — see the README for current status |

@@ -7,8 +7,8 @@ differ, because they come from the market rather than from this file.
 ## Reproduce
 
 ```bash
-git clone <this repo> && cd elephant-tracks
-python3 scripts/split_tape.py
+git clone https://github.com/edycutjong/elephant-tracks.git && cd elephant-tracks
+python3 scripts/split_tape.py --address 0x00000000efe302beaa2b3e6e1b18d08d69a9012a --symbol AUSD --pages 8 --json ausd.json
 ```
 
 That is the whole thing. No `pip install`, no `.env`, no signup — `split_tape.py` is stdlib-only
@@ -16,58 +16,88 @@ and the endpoint it calls is keyless. **There is no offline flag on this path, d
 one replay mode in the repository (`scripts/bench.py --replay`) measures the aggregation over a
 captured tape and is labelled a replay everywhere it appears; it is not the product.
 
-## Receipt — live run, 2026-09-07T05:09:23Z
+## Receipt — live run, 2026-09-07T07:00:52Z
 
 | | |
 |---|---|
-| **Wall clock** | **9.43 s**, cold start to final line |
-| **Tokens measured** | 8 |
-| **Swaps aggregated** | 800 (100 per token) |
+| **Wall clock** | **29.4 s**, cold start to final line |
+| **Token** | AUSD on Ethereum, `0x00000000efe302beaa2b3e6e1b18d08d69a9012a` |
+| **Swaps aggregated** | 800 (8 pages × 100) |
 | **API calls** | 8 |
 | **Credits used** | **0** — the endpoint is on the keyless `/public-api` surface |
 | **Credentials** | none. Run with `CMC_API_KEY`, `COINMARKETCAP_API_KEY` and `CMC_PRO_API_KEY` explicitly unset |
 | **Endpoint** | `https://pro-api.coinmarketcap.com/public-api/v1/dex/tokens/transactions` |
-| **Raw receipt** | [`docs/proof/live_run.json`](docs/proof/live_run.json) — every row, the rule, the hero |
+| **Cursor** | `data.lastId` on the response envelope · swaps keyed by `(tx, lgid)` |
+| **Raw receipt** | [`docs/proof/ausd.json`](docs/proof/ausd.json) — the row, the rule, and the 12 raw swaps behind the top seller |
+
+```
+splitting the tape — keyless, 8 page(s) x 100 swaps per token
+
+token    swaps   avg buy $  avg sell $   ticket   buy w  sell w  top buy  top sell  net flow  note
+--------------------------------------------------------------------------------------------------
+AUSD       800   91,699.61  123,273.10     1.3x     212     111    11.7%     62.0%      2.1%  
+
+HERO — rule: max top-maker share of either side among |net flow| < 5.0% (1/1 qualified)
+  AUSD: one wallet is 62.0% of the sell side while net flow reads +2.1% — a dashboard calls this balanced
+  sell: $25,459,824 in 12 swaps from 0x9f681e397f51137215b8240b8bf4e523d898661b
+  buy: 467 swaps from 212 distinct wallets, largest 11.7%
+  supporting: 467 buys avg $91,700 · 333 sells avg $123,273 · ticket ratio 1.3x
+
+net flow is one number. The split is four.
+
+wrote ausd.json  (29.4s wall clock, 0 credits — keyless)
+```
+
+### Read the AUSD row the way a trader would
+
+Net flow is **+2.1%**. Every flow dashboard in existence renders that as "nothing to see."
+
+The split disagrees. **333 sells came from 111 wallets, and one of those wallets is
+62.0% of the sell side** — $25,459,824 across 12 swaps. The **467 buys came from 212 distinct
+wallets**, the largest of which is 11.7%. One address distributing to a crowd, and the summed
+number cannot contain it — you can always re-add a split into a sum, and nothing recovers the split
+from the sum.
+
+### Check it by hand
+
+Three fields in the receipt row: `sell_top_vol` ÷ `sell_vol` = 25,459,823.58 ÷ 41,049,940.76 =
+0.6202. The receipt's `hero_evidence` block carries the 12 raw swap records whose
+maker is the top seller and whose side is `sell`, verbatim from the API; their `v` fields sum to
+`sell_top_vol`. Supporting columns: 467 buys averaging $91,700, 333 sells averaging
+$123,273, ticket ratio 1.3× — which is exactly why ticket size was never the story.
+
+### The same wallet, three runs
+
+The AUSD receipt was taken three times on 2026-09-07 — 06:40, 06:45 and 07:00 UTC — and every run
+returned the same wallet at the same 62.0% with the same $25,459,824. A stablecoin's 800-swap
+window moves slowly; the finding is persistent, not a snapshot artefact.
+
+### The watchlist run, 2026-09-07T07:11:15Z — and the honest branch
 
 ```
 splitting the tape — keyless, 1 page(s) x 100 swaps per token
 
-token    swaps   avg buy $  avg sell $   ticket   buy w  sell w  net flow  note
--------------------------------------------------------------------------------
-PEPE       100    1,046.74    1,039.40     1.0x      24      34     -1.6%
-LINK       100    1,066.64      678.68     1.6x      34      32     40.4%
-ENA        100      259.35      197.37     1.3x      25      14     27.1%
-SHIB       100      197.09        0.26   772.9x       7      75     96.6%  ⚠ dust side (avg $0.255 < $1.00)
-UNI        100    1,036.83      275.53     3.8x      70      19     87.5%
-AAVE       100    1,102.81      310.72     3.5x      47      19     81.1%
-MKR        100       90.07      341.85     3.8x      26      32    -70.1%
-CRV        100      657.35      296.05     2.2x      22      40     -0.1%
+token    swaps   avg buy $  avg sell $   ticket   buy w  sell w  top buy  top sell  net flow  note
+--------------------------------------------------------------------------------------------------
+PEPE       100      890.56      495.60     1.8x      29      27    48.8%     33.7%     50.7%  
+LINK       100       65.34      684.73    10.5x      24      45    31.8%     23.0%    -89.8%  
+ENA        100      523.52      284.57     1.8x      12      21    38.1%     48.8%    -24.0%  
+SHIB       100       90.36        9.66     9.4x      14      63    56.4%     43.4%     24.6%  
+UNI        100    1,250.81      208.63     6.0x      43      31    21.6%     37.1%     80.0%  
+AAVE       100    3,952.88    1,767.66     2.2x      20      36    84.9%     71.4%     -7.0%  
+MKR        100       41.27      166.72     4.0x      25      24    23.8%     18.6%    -73.7%  
+CRV        100      350.76      222.87     1.6x      31      24    27.0%     18.2%     24.2%  
 
-HERO — rule: max ticket asymmetry among |net flow| < 5.0% (2/8 qualified)
-  CRV at 2.2x while net flow reads -0.1% — a dashboard calls this balanced
-  31 buys avg $657 from 22 wallets
-  69 sells avg $296 from 40 wallets
-
-net flow is one number. The split is four.
+no token read balanced (|net flow| < 5.0%) among 8 trusted rows in this window — widening would break the published rule; re-run rather than cherry-pick
 ```
 
-### Read the CRV row the way a trader would
-
-Net flow is **−0.1%**. That is as balanced as a number gets; every flow dashboard in existence
-renders that as "nothing to see."
-
-The split disagrees. **69 sells averaging $296 came from 40 wallets. 31 buys averaging $657 came
-from 22 wallets.** The buy side is trading at 2.2× the sell side's ticket while being the smaller,
-more concentrated crowd. That is a shape, and the summed number cannot contain it — you can always
-re-add a split into a sum, and nothing recovers the split from the sum.
+No token on the default watchlist read balanced in that window, so the tool refused to name a hero
+rather than widen the band. That refusal is the product working; see the rule below.
 
 ### The SHIB row is the honest part
 
-SHIB scored **772.9×** and was **thrown out**, in public, on screen.
-
-Its sell side was 75 wallets trading sub-cent dust — average ticket **$0.255**. Divide a $197 buy
-ticket by that and you get a headline that is arithmetically perfect and completely meaningless.
-An earlier build printed exactly that number as a finding. Rows now carry a confidence reason and
+On an earlier run SHIB scored **772.9×** and was **thrown out**, in public, on screen: its sell side
+was 75 wallets trading sub-cent dust, average ticket **$0.255**. Rows carry a confidence reason and
 the hero rule selects only from rows clearing both published floors:
 
 | Floor | Value | What it pins |
@@ -80,13 +110,12 @@ Showing the disqualified row with its reason is more useful than hiding it. See
 
 ## How the hero row is chosen — a rule, not a pick
 
-> **Highest ticket asymmetry among tokens whose net flow reads balanced (|net flow| < 5%) and that
-> clear both confidence floors.**
+> **Highest top-maker share of either side among tokens whose net flow reads balanced
+> (|net flow| < 5%) and that clear both confidence floors.**
 
 Taking the global maximum instead would select a token every dashboard *already* flags as lopsided,
 which proves nothing. The claim is specifically that **the summed number looks fine and the split
-does not**, so the candidate set has to be tokens the summed number calls fine. On this run, 2 of 8
-qualified. When none qualify the tool says so and refuses to widen the window — see the
+does not**, so the candidate set has to be tokens the summed number calls fine. When none qualify the tool says so and refuses to widen the window — see the
 `no token read balanced` branch in `main()`.
 
 ## Benchmarks
@@ -114,22 +143,22 @@ demo, and it is why the backoff exists — see the limitations below.
 
 | | Count |
 |---|---|
-| Total tests | **21** (17 offline, 4 live) |
-| Regression tests, each named for the defect it pins | 5 |
+| Total tests | **25** (21 offline, 4 live) |
+| Regression tests, each named for the defect it pins | 7 |
 | Property-based verification of `split()` | **2,000 generated tapes, 0 failing** |
 | Malformed-response boundary cases | 6 |
 | Coverage of `scripts/split_tape.py` | 58% (the uncovered remainder is CLI printing) |
 
 ```bash
-make test        # 17 offline tests, no network
+make test        # 21 offline tests, no network
 make test-live   # 4 tests against the real CMC contract
 ```
 
 **The 2,000 is the number worth reading.** Coverage says we ran the lines we wrote. The property
-test says that across 2,000 generated tapes, `split()` never once violated five invariants — the
+test says that across 2,000 generated tapes, `split()` never once violated six invariants — the
 ratio never dropped below 1, wallet counts never exceeded trade counts, net flow never left ±100%,
-the elephant label never disagreed with the arithmetic, and **no tape marked `ok` failed to clear
-both published floors.** That last one is what stops another SHIB reaching a headline. Reproduce:
+the elephant label never disagreed with the arithmetic, the top-maker share never escaped its own
+denominator, and **no tape marked `ok` failed to clear both published floors.** That last one is what stops another SHIB reaching a headline. Reproduce:
 
 ```bash
 pytest tests/test_high_signal.py -k invariants --hypothesis-show-statistics
@@ -142,9 +171,12 @@ count is worthless without it. They are designed to fail if CoinMarketCap change
 
 ## Honest limitations
 
-- **A run measures a recent window, not 24 hours.** The `lastId` cursor does not advance on this
-  endpoint, so page 2 returns the same 100 swaps as page 1. `--pages` exists for when that is fixed;
-  today the effective depth is 100 swaps per token. Filed as `FEEDBACK.md` #4.
+- **A run measures a recent window, not 24 hours.** Depth is `--pages` × 100 swaps. Until 2026-09-07
+  the paginator read the cursor off the last swap instead of the envelope's `data.lastId` and never
+  advanced; fixed, pinned by `test_cursor_is_read_from_the_envelope_not_from_the_last_swap`, and
+  written up in `FEEDBACK.md` #4.
+- **A wallet is not an entity.** One entity can span wallets (the share is a floor); a router can
+  pool many users into one maker (it inflates). The number is the address-level share, no more.
 - **The anonymous tier throttles, and it says so with an HTTP 500.** Running the watchlist twice in
   quick succession will hit it. The tool backs off and retries rather than failing the row, but a
   throttled run is slow rather than instant. Filed as `FEEDBACK.md` #2.
@@ -153,5 +185,6 @@ count is worthless without it. They are designed to fail if CoinMarketCap change
 - **`24h_buy_volume` / `24h_sell_volume` are deliberately unused.** They reconcile with `volume_24h`
   on only **6 of 200** pairs we sampled; 55 are off by more than 100×. This is why the project
   computes from individual swaps. Full evidence in `FEEDBACK.md` #1.
-- **There is no web interface.** The judged capability is the CLI in this repository. A hosted
-  surface is planned and not built, and claiming one would be a lie.
+- **The web surface is a snapshot.** [elephant.edycu.dev](https://elephant.edycu.dev) and `/pitch`
+  carry these receipts; CMC sends no `Access-Control-Allow-Origin`, so a static page cannot call the
+  API. The live capability is this CLI.

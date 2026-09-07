@@ -23,16 +23,17 @@ that is not the fetch or the arithmetic has been removed.
                                     │  raw JSON
                                     ▼
   ┌─────────────────────────────────────────────────────────────┐
-  │  pull_swaps()   paginate by lastId, de-duplicate on `tx`,    │
-  │                 stop when the cursor stops advancing         │
+  │  pull_swaps()   paginate by the envelope's data.lastId,      │
+  │                 de-duplicate on (tx, lgid), stop on a stall  │
   │                 returns (swaps, {pages, error})              │
   └─────────────────────────────────────────────────────────────┘
                                     │  list[swap]
                                     ▼
   ┌─────────────────────────────────────────────────────────────┐
   │  split()        THE PRODUCT. Partition on `tp`, then per     │
-  │                 side: mean(`v`) and |distinct(`ma`)|         │
-  │                 -> avg ticket, wallet count, ratio, net flow │
+  │                 side: Σ`v` per `ma` -> the top wallet's      │
+  │                 share; also mean(`v`), |distinct(`ma`)|,     │
+  │                 ticket ratio, net flow                       │
   └─────────────────────────────────────────────────────────────┘
                                     │  row
                                     ▼
@@ -59,8 +60,11 @@ mechanism:
 | `v` | USD volume | The **ticket size**. Verified live: `a0 × t0pu == v` (tested in `test_live_v_really_is_usd`). |
 | `ma` | maker address | The **wallet count**. This is the field that turns "one desk against a crowd" from an inference into a measurement. |
 
-`ts`, `tx`, `en` (timestamp, tx hash, exchange) are carried through for provenance and
-de-duplication but do not enter the arithmetic.
+`ts`, `tx`, `lgid`, `en` (timestamp, tx hash, log index, exchange) are carried through for
+provenance and de-duplication but do not enter the arithmetic. **Neither `tx` nor `lgid` is a
+unique swap key on its own** — one live page of 100 swaps carried 89 distinct `tx` (a routed trade
+emits several swaps under one hash) and 91 distinct `lgid`. The identity is the pair. The next-page
+cursor is `data.lastId` on the response envelope, not a field on the last swap.
 
 ## The arithmetic, in full
 
@@ -75,9 +79,18 @@ avg_sell      = mean(sells)
 buy_wallets   = |{ma for swap in swaps if tp == "buy"}|
 sell_wallets  = |{ma for swap in swaps if tp == "sell"}|
 
-ticket_ratio  = max(avg_buy / avg_sell, avg_sell / avg_buy)      # always >= 1
+by_maker[side][ma] += v                                          # per side, per wallet
+top_share[side]  = max(by_maker[side].values()) / sum(side)       # THE NUMBER: one wallet's share
+top_share        = max(top_share["buy"], top_share["sell"])
+
+ticket_ratio  = max(avg_buy / avg_sell, avg_sell / avg_buy)      # always >= 1; supporting only
 net_flow_pct  = (sum(buys) - sum(sells)) / (sum(buys) + sum(sells)) * 100
 ```
+
+`top_share` is the headline. `ticket_ratio` is kept as a supporting column because at flat net flow
+it is degenerate: buy volume ≈ sell volume, so `avg_buy / avg_sell ≈ n_sells / n_buys` — the count
+ratio measured twice (median gap 5.8% across 54 flat tokens on 2026-09-07). The hero rule ranks
+balanced, trusted rows by `top_share`.
 
 `net_flow_pct` is computed **only so it can be shown losing**. It is the number every other tool
 reports; printing it beside the ratio is what makes the disagreement visible in one row.
@@ -128,9 +141,14 @@ tests/
 data/
   seed_tape.json                a recording. Nothing on the judged path reads it.
 docs/proof/
-  live_run.json                 receipt from a real run
+  ausd.json shfl.json bingo.json gme.json   800-swap receipts, one per quadrant, with raw evidence swaps
+  live_run.json                 receipt from a watchlist run
   bench_live.json               timings, live
   bench_replay.json             timings, deterministic
+site/
+  index.html                    landing page — a dated snapshot of the receipts, single file
+  pitch/index.html              the deck, single file
+  assets/                       brand assets referenced by the two pages
 ```
 
 ## Deliberate non-architecture
@@ -139,6 +157,6 @@ docs/proof/
 |---|---|
 | Database | Every number is recomputed from a live fetch. There is nothing to persist. |
 | Cache | A cached tape is a stale tape; the whole claim is about the current window. |
-| Server | The judged capability is a CLI. A web surface is planned but not built, and claiming one would be a lie. |
+| Server | The judged capability is a CLI. `site/` is static HTML carrying dated receipts — CoinMarketCap sends no `Access-Control-Allow-Origin`, so a browser cannot call it, and a live web tool would need a proxy that does not exist. |
 | Auth | The endpoint is keyless. Adding auth would remove the best property this project has. |
 | Runtime dependencies | `split_tape.py` is stdlib-only, so `python3 scripts/split_tape.py` works on a clean machine with no install step. |

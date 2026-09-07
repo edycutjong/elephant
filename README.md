@@ -2,18 +2,22 @@
 
 <h1>Elephant Tracks 🐘</h1>
 
-<p><em>The tape says balanced. The split says one desk and a crowd.</em></p>
+<p><em>The tape says balanced. The split says one wallet and a crowd.</em></p>
 
 <p>Net flow is a sum, and summing is lossy. Elephant Tracks splits the tape back apart —
-per-side ticket size and per-side wallet count, from real swaps.</p>
+per side, how much of it is <strong>one wallet</strong> — from real swaps and their maker addresses.</p>
 
-<p><strong>Live, keyless, 2026-09-07:</strong> 800 swaps across 8 tokens in <strong>9.43 s</strong>
-for <strong>0 credits</strong> and no API key. CRV showed a <strong>2.2× ticket asymmetry while its
-net flow read −0.1%</strong>. <a href="DEMO.md">Receipt →</a></p>
+<p><strong>Live, keyless, 2026-09-07:</strong> 800 swaps of AUSD in <strong>29.4 s</strong>
+for <strong>0 credits</strong> and no API key. <strong>One wallet was 62.0% of the sell side —
+$25,459,824 in 12 swaps — into 212 buying wallets, while net flow read
++2.1%.</strong> <a href="DEMO.md">Receipt →</a></p>
+
+<p><a href="https://elephant.edycu.dev">elephant.edycu.dev</a> · <a href="https://elephant.edycu.dev/pitch/">pitch deck</a></p>
 
 <br/>
 
 [![Judge Guide](https://img.shields.io/badge/⚖️_Start-Here-06b6d4?style=for-the-badge)](JUDGE.md)
+[![Landing page](https://img.shields.io/badge/🐘_elephant.edycu.dev-Landing-0B0E14?style=for-the-badge)](https://elephant.edycu.dev)
 [![Live Run Receipt](https://img.shields.io/badge/🧾_Live_Run-Receipt-FFB020?style=for-the-badge)](DEMO.md)
 [![API Feedback](https://img.shields.io/badge/📮_CMC_API-Feedback-4C9AFF?style=for-the-badge)](FEEDBACK.md)
 [![Built for Build with CMC](https://img.shields.io/badge/DoraHacks-Build_with_CMC-8b5cf6?style=for-the-badge)](https://dorahacks.io/hackathon/coinmarketcap-api-202609/detail)
@@ -36,44 +40,42 @@ net flow read −0.1%</strong>. <a href="DEMO.md">Receipt →</a></p>
 No key. No signup. No install. One command:
 
 ```bash
-python3 scripts/split_tape.py
+python3 scripts/split_tape.py --address 0x00000000efe302beaa2b3e6e1b18d08d69a9012a --symbol AUSD --pages 8 --json ausd.json
 ```
 
 ```
-splitting the tape — keyless, 1 page(s) x 100 swaps per token
+splitting the tape — keyless, 8 page(s) x 100 swaps per token
 
-token    swaps   avg buy $  avg sell $   ticket   buy w  sell w  net flow  note
--------------------------------------------------------------------------------
-PEPE       100    1,046.74    1,039.40     1.0x      24      34     -1.6%
-LINK       100    1,066.64      678.68     1.6x      34      32     40.4%
-ENA        100      259.35      197.37     1.3x      25      14     27.1%
-SHIB       100      197.09        0.26   772.9x       7      75     96.6%  ⚠ dust side (avg $0.255 < $1.00)
-UNI        100    1,036.83      275.53     3.8x      70      19     87.5%
-AAVE       100    1,102.81      310.72     3.5x      47      19     81.1%
-MKR        100       90.07      341.85     3.8x      26      32    -70.1%
-CRV        100      657.35      296.05     2.2x      22      40     -0.1%
+token    swaps   avg buy $  avg sell $   ticket   buy w  sell w  top buy  top sell  net flow  note
+--------------------------------------------------------------------------------------------------
+AUSD       800   91,699.61  123,273.10     1.3x     212     111    11.7%     62.0%      2.1%  
 
-HERO — rule: max ticket asymmetry among |net flow| < 5.0% (2/8 qualified)
-  CRV at 2.2x while net flow reads -0.1% — a dashboard calls this balanced
-  31 buys avg $657 from 22 wallets
-  69 sells avg $296 from 40 wallets
+HERO — rule: max top-maker share of either side among |net flow| < 5.0% (1/1 qualified)
+  AUSD: one wallet is 62.0% of the sell side while net flow reads +2.1% — a dashboard calls this balanced
+  sell: $25,459,824 in 12 swaps from 0x9f681e397f51137215b8240b8bf4e523d898661b
+  buy: 467 swaps from 212 distinct wallets, largest 11.7%
+  supporting: 467 buys avg $91,700 · 333 sells avg $123,273 · ticket ratio 1.3x
 
 net flow is one number. The split is four.
+
+wrote ausd.json  (29.4s wall clock, 0 credits — keyless)
 ```
 
 > **That is a live call to CoinMarketCap's keyless `/public-api` surface. Nothing here is a
-> fixture.** These exact numbers are from **2026-09-07T05:09:23Z** — run it yourself and they will
-> differ, because they come from the market rather than from this file. Full receipt, including the
-> raw JSON: **[DEMO.md](DEMO.md)**.
+> fixture.** These exact numbers are from **2026-09-07T07:00:52Z** — run it yourself and they will
+> differ, because they come from the market rather than from this file. The full receipt, including
+> the 12 raw swap records behind the top seller, is committed at
+> [`docs/proof/ausd.json`](docs/proof/ausd.json) and walked through in **[DEMO.md](DEMO.md)**.
 
-**Read the CRV row.** Net flow is −0.1% — as balanced as a number gets. The split disagrees:
-69 sells averaging $296 came from 40 wallets, while 31 buys averaging $657 came from 22. The buy
-side is trading at 2.2× the ticket while being the smaller, more concentrated crowd.
+**Read the AUSD row.** Net flow is +2.1% — every flow dashboard in existence renders that as
+"balanced". Split the same 800 swaps by maker address and the sell side is **62.0% one
+wallet** — $25,459,824 across 12 swaps — sold into **212 distinct buying wallets**, the largest
+of which is 11.7%. That is one seller distributing to a crowd, and the summed number cannot
+contain it.
 
-**And read the SHIB row, which was thrown out.** It scored 772.9× off a sell side of sub-cent dust
-averaging $0.255. Arithmetically perfect, completely meaningless. An earlier build printed that as
-a finding; it is now disqualified on screen, with its reason. See
-[Engineering Rigor](#-engineering-rigor).
+**The default run is the eight-token watchlist** (`python3 scripts/split_tape.py`, one page each). It
+applies the same published rule, and when no token reads balanced it says so on screen rather than
+widening the band — on the 2026-09-07T07:11:15Z run, none did. Transcript in [DEMO.md](DEMO.md).
 
 ---
 
@@ -100,19 +102,26 @@ side separately.
 
 CoinMarketCap's `/v1/dex/tokens/transactions` returns, per swap: the **side** (`tp`), the **USD
 value** (`v`), and the **maker address** (`ma`). That last field is what turns "one desk against a
-crowd" from an inference into a **count**.
+crowd" from an inference into a **measurement**: per side, sum `v` per `ma`, and the largest
+wallet's share of the side is the number.
 
-**The hero row is chosen by a published rule** — highest ticket asymmetry among tokens whose net
-flow is within ±5% *and* which clear both confidence floors — so it is a screen, not a cherry-pick.
-Taking the global maximum instead would pick a token a dashboard already flags as lopsided, which
-proves nothing.
+**The hero row is chosen by a published rule** — highest top-maker share of either side among
+tokens whose net flow is within ±5% *and* which clear both confidence floors — so it is a screen,
+not a cherry-pick. Taking the global maximum instead would pick a token a dashboard already flags
+as lopsided, which proves nothing.
+
+**Why maker share and not ticket size.** The first version headlined average buy ticket ÷ average
+sell ticket. At flat net flow buy volume ≈ sell volume, so that ratio collapses to the count ratio
+(`n_sells / n_buys`) — one quantity measured twice; across 54 flat tokens the two agreed to within a
+median 5.8%, and the best real value was 5.2×. Maker share is a second, independent quantity. The
+ticket ratio stays as a supporting column.
 
 ---
 
 ## 🏗️ Architecture & Tech Stack
 
 ```
-pull the swaps  →  split by side  →  count wallets + average tickets  →  rank by asymmetry
+pull the swaps  →  split by side  →  attribute each side to its makers  →  rank by concentration
 ```
 
 No server, no database, no cache, no model. The product is one arithmetic operation applied to data
@@ -121,8 +130,8 @@ only CoinMarketCap publishes, so everything that is not the fetch or the arithme
 | Stage | Function | What it does |
 |---|---|---|
 | Fetch | `get()` | One keyless GET. Backs off on 429/5xx; returns errors instead of swallowing them. |
-| Paginate | `pull_swaps()` | De-duplicates on `tx`, stops when the cursor stalls, returns `(swaps, meta)`. |
-| **Split** | `split()` | **The product.** Partition on `tp`; per side, `mean(v)` and `|distinct(ma)|`. |
+| Paginate | `pull_swaps()` | Cursor is `data.lastId` on the response envelope; de-duplicates on `(tx, lgid)`; returns `(swaps, meta)`. |
+| **Split** | `split()` | **The product.** Partition on `tp`; per side, `Σ v` per `ma` → the top wallet's share, plus `mean(v)` and `|distinct(ma)|`. |
 | Gate | `_confidence()` | Is this ratio meaningful at all? Dust floor + minimum swaps per side. |
 | Rank | `main()` | Apply the published hero rule, print the table, emit JSON. |
 
@@ -166,10 +175,10 @@ changed this project's entire mechanism: **[FEEDBACK.md](FEEDBACK.md)**.
 
 | Measurement | Value |
 |---|---|
-| Live run wall clock | **9.43 s** — 800 swaps, 8 tokens, 8 calls |
+| Live run wall clock | **29.4 s** — 800 swaps of one token, 8 calls · **10.0 s** — the 8-token watchlist |
 | **Credits used** | **0** — keyless, with every CMC env var explicitly unset |
-| Tests | **21** (17 offline, 4 live) |
-| Regression tests named for the defect they pin | 5 |
+| Tests | **25** (21 offline, 4 live) |
+| Regression tests named for the defect they pin | 7 |
 | **Property-based verification of `split()`** | **2,000 generated tapes, 0 failing** |
 | Malformed-response boundary cases | 6 |
 | Aggregation latency | p50 **0.026 ms**, p95 0.026 ms (n=200) |
@@ -177,10 +186,12 @@ changed this project's entire mechanism: **[FEEDBACK.md](FEEDBACK.md)**.
 | Coverage of `scripts/split_tape.py` | 58% — the remainder is CLI printing |
 
 **The 2,000 is the number worth reading.** Coverage says we ran the lines we wrote. The property
-test says that across 2,000 generated tapes `split()` never violated five invariants: the ratio
+test says that across 2,000 generated tapes `split()` never violated six invariants: the ratio
 never dropped below 1, wallet counts never exceeded trade counts, net flow never left ±100%, the
-elephant label never disagreed with the arithmetic, and **no tape marked `ok` failed to clear both
-published floors.** That last one is what stops another SHIB reaching a headline.
+elephant label never disagreed with the arithmetic, **the top-maker share never escaped its own
+denominator** (0–1, attributed to a wallet on that side, never more volume than the side), and **no
+tape marked `ok` failed to clear both published floors.** That last one is what stops another SHIB
+reaching a headline.
 
 ```bash
 pytest tests/test_high_signal.py -k invariants --hypothesis-show-statistics
@@ -199,7 +210,8 @@ them reached the headline.
 | `MIN_SIDE_SWAPS` | 5 | a side too thin for "average" to mean anything |
 
 Rows failing either are still printed, **with the reason**, and excluded from hero selection.
-Showing a disqualified row is more honest than hiding it.
+Showing a disqualified row is more honest than hiding it. On 2026-09-07 an earlier build printed
+SHIB at 772.9× off 75 sub-cent sells; the floors exist because of that row.
 
 ---
 
@@ -222,8 +234,9 @@ python3 scripts/split_tape.py
 > keyless by design. Start at **[JUDGE.md](JUDGE.md)**.
 
 ```bash
+python3 scripts/split_tape.py --address 0x00000000efe302beaa2b3e6e1b18d08d69a9012a --symbol AUSD --pages 8 --json ausd.json   # the headline, 800 swaps
 python3 scripts/split_tape.py --address 0x6982508145454ce325ddbe47a25d4ec3d2311933 --symbol PEPE
-python3 scripts/split_tape.py --json run.json      # write the full result set
+python3 scripts/split_tape.py --json run.json      # the watchlist, full result set
 ```
 
 ---
@@ -233,7 +246,7 @@ python3 scripts/split_tape.py --json run.json      # write the full result set
 ```bash
 make install     # dev deps (pytest, hypothesis, ruff, pip-audit)
 make lint        # ruff check + format check
-make test        # 17 offline tests with coverage, no network
+make test        # 21 offline tests with coverage, no network
 make test-live   # 4 tests against the real CoinMarketCap contract
 make demo        # the judged capability, live, no key
 make bench       # deterministic p50/p95 over the captured tape
@@ -245,7 +258,7 @@ make ci          # lint + test + audit + check
 | Layer | Tool | Status |
 |---|---|---|
 | Code quality | ruff (check + format) | ✅ |
-| Unit testing | pytest, 17 offline tests | ✅ |
+| Unit testing | pytest, 21 offline tests | ✅ |
 | Property testing | hypothesis, 2,000 cases | ✅ |
 | Live contract testing | pytest `-m live` against real CMC | ✅ |
 | Security (SAST) | CodeQL | ✅ |
@@ -271,8 +284,9 @@ elephant-tracks/
 ├── tests/
 │   ├── test_split.py                 the maths + live contract tests
 │   └── test_high_signal.py           regressions · property · boundary
+├── site/                             landing page (/) and pitch deck (/pitch) — dated snapshots
 ├── data/seed_tape.json               a recording. Nothing judged reads it.
-├── docs/proof/                       live_run.json + both benchmark receipts
+├── docs/proof/                       ausd/shfl/bingo/gme.json receipts, live_run.json, benchmarks
 ├── JUDGE.md · DEMO.md · ARCHITECTURE.md · FEEDBACK.md
 └── README.md                         you are here
 ```
@@ -284,18 +298,25 @@ elephant-tracks/
 - [x] Per-swap aggregation from the keyless `/v1/dex/tokens/transactions`
 - [x] Confidence floors so a dust side can never produce a headline
 - [x] Backoff across both forms of the anonymous throttle
-- [x] Live-run receipt, benchmarks, and property verification
-- [ ] Hosted surface (`/`, `/app`, `/pitch`) — designed, **not built**
-- [ ] Log-log ticket map with the symmetry diagonal drawn
-- [ ] Quadrant classifier from the self-collected holder-count delta
+- [x] Live-run receipts, benchmarks, and property verification
+- [x] Cursor pagination that actually advances (`data.lastId`), `(tx, lgid)` identity
+- [x] Maker attribution per side — the top wallet's share, distribution and top ten
+- [x] Landing page and pitch deck (static, dated receipts) at elephant.edycu.dev
+- [x] Quadrant map on maker share: distribution · accumulation · wash-shaped · churn
+- [ ] Hosted live tool with a token input — needs a CORS proxy, **not built**
 
 ---
 
 ## ⚠️ Honest limitations
 
-- **A run measures a recent window, not 24 hours.** The `lastId` cursor does not advance on this
-  endpoint, so page 2 returns the same 100 swaps as page 1. Effective depth is 100 swaps per token.
-  Filed as [FEEDBACK.md](FEEDBACK.md) #4.
+- **A run measures a recent window, not 24 hours.** Depth is `--pages` × 100 swaps; the published
+  receipts use 8 pages. For a stablecoin that window spans days, for a meme coin minutes. (Until
+  2026-09-07 our paginator read the cursor off the last swap instead of the envelope's `data.lastId`,
+  so every earlier number came from a single 100-swap window. Fixed, pinned by a test, and written
+  up in [FEEDBACK.md](FEEDBACK.md) #4.)
+- **A wallet is not an entity.** One entity can spread across wallets, which makes the share a
+  floor; a router or aggregator can pool many users into one maker, which inflates it. The number
+  is "share of the side attributed to one address", exactly as the API reports it.
 - **The anonymous tier throttles, and reports it as an HTTP 500** rather than a 429. Run the
   watchlist twice quickly and you will hit it. The tool backs off and retries rather than failing
   the row, so a throttled run is slow rather than broken. Filed as [FEEDBACK.md](FEEDBACK.md) #2.
@@ -305,8 +326,10 @@ elephant-tracks/
   reconcile with `volume_24h` on only **6 of 200** pairs we sampled — 55 are off by more than 100×.
   This project computes from individual swaps instead. Full evidence in
   [FEEDBACK.md](FEEDBACK.md) #1.
-- **There is no web interface.** The judged capability is the CLI in this repository. A hosted
-  surface is designed and not built, and claiming one would be a lie.
+- **The web surface is a snapshot, not a live tool.** [elephant.edycu.dev](https://elephant.edycu.dev)
+  and its `/pitch` deck carry dated receipts with the command that produced them. CoinMarketCap sends
+  no `Access-Control-Allow-Origin`, so a static page cannot call the API; the live capability is the
+  CLI in this repository.
 - **`/v1/dex/holders/trend/list` is not available on the Startup plan**, so the holder series is
   collected daily by us instead.
 
