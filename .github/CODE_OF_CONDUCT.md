@@ -12,8 +12,8 @@ Unacceptable behaviour includes harassment, insulting or derogatory comments, pe
 attacks, and publishing others' private information without permission.
 
 ## Enforcement
-Report unacceptable behaviour by opening a private security advisory or contacting the maintainer.
-Maintainers will review and respond, and will respect the reporter's privacy.
+Report unacceptable behaviour to the maintainer at **edy.cu@live.com**, or by opening a private
+security advisory. Reports are reviewed promptly and fairly, and the reporter's privacy is respected.
 
 This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org),
 version 2.1.

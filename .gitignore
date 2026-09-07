@@ -31,3 +31,12 @@ data/pairs.json
 
 # tooling caches
 .ruff_cache/
+
+# kitchen guard — specs/, submission/ and assets/ live one level up and must never
+# enter this repo. /publish copies selected artifacts into docs/, never into these.
+assets/
+specs/
+submission/
+_ideas/
+_specs/
+graphify-out/
