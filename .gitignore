@@ -40,3 +40,9 @@ submission/
 _ideas/
 _specs/
 graphify-out/
+
+# coverage artifacts
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
