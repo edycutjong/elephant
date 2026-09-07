@@ -14,8 +14,8 @@ jobs:
     name: "Stage 1 · Lint"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: { python-version: '3.11' }
       - run: pip install -r requirements-dev.txt
       - run: ruff check --output-format=github .
@@ -28,8 +28,8 @@ jobs:
       matrix:
         python-version: ${{ github.event_name == 'push' && fromJSON('["3.11","3.12","3.13"]') || fromJSON('["3.11"]') }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: { python-version: '${{ matrix.python-version }}' }
       - run: pip install -r requirements-dev.txt
       # Offline only. The live tests run in the live-api job below, where a CMC
@@ -40,8 +40,8 @@ jobs:
     name: "Stage 2 · Dependency audit"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: { python-version: '3.11' }
       - run: pip install pip-audit && pip-audit -r requirements.txt
 
@@ -49,8 +49,8 @@ jobs:
     name: "Stage 2 · No placeholders"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: { python-version: '3.11' }
       - run: python3 scripts/check_submission_readiness.py
       # The landing page, the deck and JUDGE.md are rendered from docs/proof/*.json. If the
@@ -61,8 +61,8 @@ jobs:
     name: "Stage 3 · Deterministic benchmark"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: { python-version: '3.11' }
       # Replay against the committed tape: no network, so this number is comparable
       # across runs. The LIVE number is produced by the job below.
@@ -73,8 +73,8 @@ jobs:
     needs: [lint, test]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: { python-version: '3.11' }
       - run: pip install -r requirements-dev.txt
       # No secret is configured for this job, deliberately: the judged path is keyless,
