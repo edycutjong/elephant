@@ -26,7 +26,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from split_tape import pull_swaps, split  # noqa: E402
+from split_tape import api_key, pull_swaps, split  # noqa: E402
 
 SEED = Path(__file__).resolve().parents[1] / "data" / "seed_tape.json"
 UNI = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"
@@ -80,12 +80,15 @@ def main():
         out["split"] = report("split (aggregation)", split_ms)
         out["swaps"] = len(swaps)
     else:
-        print(f"live — keyless fetch + split, {a.iterations} iterations against UNI\n")
-        fetch_ms, split_ms, counts = [], [], []
+        key, var = api_key()
+        surface = f"keyed fetch via ${var} (escape hatch)" if key else "keyless fetch"
+        print(f"live — {surface} + split, {a.iterations} iterations against UNI\n")
+        fetch_ms, split_ms, counts, credits = [], [], [], []
         for i in range(a.iterations):
             t = time.perf_counter()
             swaps, meta = pull_swaps(UNI, pages=1)
             fetch_ms.append((time.perf_counter() - t) * 1000)
+            credits.append(meta.get("credits", 0))
             if meta["error"]:
                 print(f"  iteration {i + 1}: API error — {meta['error'][:70]}")
                 continue
@@ -98,12 +101,15 @@ def main():
         out["fetch"] = report("fetch (network)", fetch_ms)
         out["split"] = report("split (aggregation)", split_ms)
         out["swaps"] = int(statistics.median(counts))
-        out["credits_used"] = 0
+        out["credits_used"] = 0 if not key else sum(m for m in credits)
 
-    print(
-        f"\n  {out['swaps']} swaps per iteration · "
-        f"{'0 credits — keyless' if not a.replay else 'no network'}"
-    )
+    if a.replay:
+        cost = "no network"
+    elif out["credits_used"]:
+        cost = f"{out['credits_used']} credits — keyed"
+    else:
+        cost = "0 credits — keyless"
+    print(f"\n  {out['swaps']} swaps per iteration · {cost}")
 
     if a.json:
         Path(a.json).write_text(json.dumps(out, indent=2, sort_keys=True))

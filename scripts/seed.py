@@ -20,7 +20,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from split_tape import BASE, pull_swaps, split  # noqa: E402
+from split_tape import active_base, api_key, pull_swaps, split  # noqa: E402
 
 OUT = Path(__file__).resolve().parents[1] / "data" / "seed_tape.json"
 UNI = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"
@@ -34,7 +34,8 @@ def main():
     ap.add_argument("--pages", type=int, default=1)
     a = ap.parse_args()
 
-    print(f"capturing {a.symbol} from the live keyless endpoint...")
+    surface = "keyed endpoint (escape hatch)" if api_key()[0] else "keyless endpoint"
+    print(f"capturing {a.symbol} from the live {surface}...")
     swaps, meta = pull_swaps(a.address, a.platform, a.pages)
     if meta["error"]:
         sys.exit(f"capture failed: {meta['error']}")
@@ -50,7 +51,7 @@ def main():
                 "fetches live. This file exists only for offline replay in bench "
                 "and tests.",
                 "captured_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                "source": f"{BASE}/v1/dex/tokens/transactions",
+                "source": f"{active_base()}/v1/dex/tokens/transactions",
                 "symbol": a.symbol,
                 "address": a.address,
                 "platform": a.platform,

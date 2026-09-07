@@ -12,6 +12,7 @@ Not three suites — three tests, each answering a question coverage cannot.
 """
 
 import io
+import json
 import sys
 import urllib.error
 import urllib.request
@@ -25,8 +26,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import split_tape  # noqa: E402
 from split_tape import DUST_USD, MIN_SIDE_SWAPS, pull_swaps, split  # noqa: E402
 
+UNI = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"
+
 # Published case count — keep this in sync with README.md and DEMO.md.
 PROPERTY_CASES = 2000
+# Every credential the judged path could conceivably read. The three the tool honours as an
+# escape hatch, plus two it must never honour. Unset in every boundary test below.
+ALL_KEY_VARS = (*split_tape.KEY_VARS, "X_CMC_PRO_API_KEY", "API_KEY")
 
 
 def _swap(tp, v, ma):
@@ -186,6 +192,122 @@ def test_transient_throttle_is_retried_before_the_row_is_failed(monkeypatch):
     assert calls["n"] == 1, "a 400 is permanent — retrying it only wastes time"
 
 
+def test_exhausted_throttle_explains_itself_instead_of_dumping_a_truncated_body(
+    monkeypatch, capsys
+):
+    """Live run 2026-09-07, roughly 3,700 anonymous calls into the day from one IP.
+
+    Backoffs of 15 s, 30 s and 60 s, then exit 1 with the first 160 bytes of the response —
+    a JSON body cut off mid-string — as the only explanation. 105 seconds of waiting for a
+    message a judge could not act on. The failure must name the tier, both ways CMC reports
+    it, and the two ways through: wait, or export a free key. Never a raw body.
+    """
+    body = (
+        b'{"status":{"timestamp":"2026-09-07T10:00:00.000Z","error_code":"1022",'
+        b'"error_message":"You\'ve reached the limit for anonymous access, please try again '
+        b'later!","elapsed":0,"credit_count":0}}'
+    )
+
+    class Limit(urllib.error.HTTPError):
+        def __init__(self):
+            self.code = 429
+
+        def read(self):
+            return body
+
+    def always_limited(url, timeout=None):
+        raise Limit()
+
+    for var in ALL_KEY_VARS:
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setattr(split_tape.time, "sleep", lambda s: None)
+    monkeypatch.setattr(split_tape.urllib.request, "urlopen", always_limited)
+    monkeypatch.setattr(sys, "argv", ["split_tape.py", "--address", "0xdead", "--symbol", "X"])
+    with pytest.raises(SystemExit) as ex:
+        split_tape.main()
+    msg, out = str(ex.value), capsys.readouterr().out
+
+    assert "HTTP 429 (error 1022)" in msg, "the status and CMC's own error code, parsed"
+    assert "anonymous" in msg and "per IP" in msg, "name the tier"
+    assert "HTTP 500" in msg, "name the other way the same throttle is reported"
+    assert "CMC_API_KEY" in msg and split_tape.KEY_URL in msg, "name the escape hatch"
+    assert "never a" in msg and "keyless" in msg, "and say the default stays keyless"
+    for text in (msg, out):
+        assert "{" not in text and "}" not in text, "never a raw response body"
+    assert "error 1022" in out, "the row line carries the parsed message too"
+    assert "keyless" in out.splitlines()[0], "the mode is on the first line"
+
+
+def test_http_error_is_described_by_its_message_never_by_its_body():
+    """Both shapes CMC uses, and a non-JSON body from a proxy: the description is the status,
+    the API's error code and the API's message. A body is never quoted."""
+
+    class Err(urllib.error.HTTPError):
+        def __init__(self, code, body, reason=None):
+            self.code, self._body, self._reason = code, body, reason
+
+        def read(self):
+            return self._body
+
+        @property
+        def reason(self):
+            return self._reason
+
+    busy = Err(
+        500, b'{"error_code":500,"error_message":"The system is busy, please try again later!"}'
+    )
+    assert split_tape.describe_http_error(busy) == (
+        "HTTP 500 (error 500): The system is busy, please try again later!"
+    )
+    nested = Err(
+        429, b'{"status":{"error_code":"1022","error_message":"You\'ve reached the limit"}}'
+    )
+    assert (
+        split_tape.describe_http_error(nested) == "HTTP 429 (error 1022): You've reached the limit"
+    )
+    html = Err(502, b"<html><body>Bad Gateway from the edge</body></html>", reason="Bad Gateway")
+    assert split_tape.describe_http_error(html) == "HTTP 502: Bad Gateway"
+    assert "<html" not in split_tape.describe_http_error(html)
+
+
+def test_a_partly_throttled_watchlist_names_the_missing_tokens_and_the_way_through(
+    monkeypatch, capsys
+):
+    """One token answers, seven are throttled: the table must show the row it has, and the
+    run must say which tokens are missing and why, rather than end as if it had run clean."""
+    tape = [_swap("buy", 100 + i, f"b{i}") for i in range(10)] + [
+        _swap("sell", 100 + i, f"s{i}") for i in range(10)
+    ]
+
+    def fake_pull(address, platform="ethereum", pages=1):
+        if address == split_tape.WATCHLIST[0][1]:
+            return tape, {
+                "pages": 1,
+                "error": None,
+                "stalled": False,
+                "throttled": False,
+                "credits": 0,
+            }
+        return [], {
+            "pages": 0,
+            "error": "HTTP 429 (error 1022): You've reached the limit for anonymous access",
+            "stalled": False,
+            "throttled": True,
+            "credits": 0,
+        }
+
+    for var in ALL_KEY_VARS:
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setattr(split_tape, "pull_swaps", fake_pull)
+    monkeypatch.setattr(sys, "argv", ["split_tape.py"])
+    split_tape.main()
+    out = capsys.readouterr().out
+    assert "7 token(s) missing above" in out
+    assert "anonymous tier throttled them" in out
+    assert "CMC_API_KEY" in out and split_tape.KEY_URL in out
+    assert split_tape.WATCHLIST[1][0] in out.split("missing above")[1]
+
+
 def test_zero_average_side_does_not_raise_before_the_confidence_gate():
     """A side can average exactly 0.0 if every swap is priced below float resolution.
 
@@ -284,6 +406,101 @@ def test_malformed_response_is_refused_rather_than_turned_into_a_number(monkeypa
     assert split(swaps) is None, f"produced a number from {garbage}"
 
 
+def _capture_request(monkeypatch):
+    """Replace the socket with a recorder: the URL and headers the tool would have sent."""
+    seen = {}
+
+    def fake_urlopen(req, timeout=None):
+        seen["url"] = req.full_url
+        seen["headers"] = {k.lower(): v for k, v in req.header_items()}
+        return io.BytesIO(b'{"data": {"swaps": []}}')
+
+    monkeypatch.setattr(split_tape.urllib.request, "urlopen", fake_urlopen)
+    return seen
+
+
+def test_default_path_sends_no_key_and_uses_the_public_surface(monkeypatch):
+    """The R10 gate as a test: with every credential unset, the request is the bare keyless
+    one — the /public-api base, no X-CMC_PRO_API_KEY header, nothing read from disk."""
+    for var in ALL_KEY_VARS:
+        monkeypatch.delenv(var, raising=False)
+    seen = _capture_request(monkeypatch)
+    assert split_tape.api_key() == (None, None)
+    assert split_tape.active_base() == split_tape.BASE
+    assert "_err" not in split_tape.get("/v1/dex/tokens/transactions", address="0xdead")
+    assert seen["url"].startswith(split_tape.BASE + "/v1/dex/tokens/transactions?")
+    assert "/public-api/" in seen["url"]
+    assert "x-cmc_pro_api_key" not in seen["headers"]
+
+
+# The literal is deliberate: ast.literal_eval in the count test below cannot resolve a name.
+# The assertion inside keeps it honest against the tool's own list.
+@pytest.mark.parametrize("var", ["CMC_API_KEY", "COINMARKETCAP_API_KEY", "CMC_PRO_API_KEY"])
+def test_an_exported_key_is_sent_as_the_pro_header_to_the_keyed_base(monkeypatch, var):
+    """The escape hatch for a throttled IP. Any of the three names moves the identical call
+    to the keyed base with the key in X-CMC_PRO_API_KEY. Exercised with a fake key against a
+    recorder: no real credential is needed to prove the wiring, and none is committed."""
+    assert var in split_tape.KEY_VARS
+    for v in ALL_KEY_VARS:
+        monkeypatch.delenv(v, raising=False)
+    monkeypatch.setenv(var, "not-a-real-key")
+    seen = _capture_request(monkeypatch)
+    assert split_tape.api_key() == ("not-a-real-key", var)
+    assert split_tape.active_base() == split_tape.BASE_KEYED
+    split_tape.get("/v1/dex/tokens/transactions", address="0xdead")
+    assert seen["url"].startswith(split_tape.BASE_KEYED + "/v1/dex/tokens/transactions?")
+    assert "/public-api/" not in seen["url"]
+    assert seen["headers"]["x-cmc_pro_api_key"] == "not-a-real-key"
+
+
+def test_a_blank_key_variable_does_not_switch_the_path(monkeypatch):
+    """`export CMC_API_KEY=` (empty, or whitespace) is not a key. The tool must stay on the
+    keyless surface rather than send an empty header to the keyed one and fail on auth."""
+    for v in ALL_KEY_VARS:
+        monkeypatch.delenv(v, raising=False)
+    monkeypatch.setenv("CMC_API_KEY", "   ")
+    seen = _capture_request(monkeypatch)
+    split_tape.get("/v1/dex/tokens/transactions", address="0xdead")
+    assert "/public-api/" in seen["url"]
+    assert "x-cmc_pro_api_key" not in seen["headers"]
+
+
+def test_the_receipt_says_which_path_produced_it(monkeypatch, tmp_path, capsys):
+    """A keyed run can never pass itself off as the keyless default: the first line, the last
+    line and the JSON receipt all say keyed, and credits are the envelope's own count."""
+    envelope = b'{"status":{"credit_count":1},"data":{"lastId":null,"swaps":['
+    envelope += b",".join(
+        f'{{"tx":"0x{i}","lgid":"{lg}","tp":"{tp}","v":"100","ma":"{tp}{i}"}}'.encode()
+        for i in range(12)
+        for lg, tp in ((1, "buy"), (2, "sell"))
+    )
+    envelope += b"]}}"
+    for v in ALL_KEY_VARS:
+        monkeypatch.delenv(v, raising=False)
+    monkeypatch.setenv("CMC_PRO_API_KEY", "not-a-real-key")
+    monkeypatch.setattr(
+        split_tape.urllib.request, "urlopen", lambda req, timeout=None: io.BytesIO(envelope)
+    )
+    out_path = tmp_path / "r.json"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["split_tape.py", "--address", "0xdead", "--symbol", "X", "--json", str(out_path)],
+    )
+    split_tape.main()
+    out = capsys.readouterr().out
+    assert "keyed via $CMC_PRO_API_KEY" in out.splitlines()[0]
+    assert "1 credits — keyed via $CMC_PRO_API_KEY" in out.splitlines()[-1]
+    receipt = json.loads(out_path.read_text())
+    assert receipt["credits_used"] == 1
+    assert receipt["auth"].startswith("X-CMC_PRO_API_KEY from $CMC_PRO_API_KEY")
+    assert (
+        receipt["endpoint"].startswith(split_tape.BASE_KEYED)
+        and "/public-api/" not in receipt["endpoint"]
+    )
+    assert "not-a-real-key" not in out_path.read_text(), "the key itself never enters a receipt"
+
+
 @pytest.mark.live
 def test_judged_path_requires_no_credential_at_all(monkeypatch):
     """Unset every credential the project could possibly read, then run the real thing.
@@ -306,3 +523,20 @@ def test_judged_path_requires_no_credential_at_all(monkeypatch):
     assert meta["error"] is None, f"keyless fetch failed: {meta['error']}"
     assert swaps, "no swaps returned with every credential unset"
     assert any(s.get("tp") in ("buy", "sell") for s in swaps)
+
+
+@pytest.mark.live
+def test_keyed_escape_hatch_reaches_the_keyed_endpoint_when_a_key_is_exported():
+    """The fallback for a throttled IP, proven against the real keyed endpoint.
+
+    Skipped, not failed, when no key is exported: the default path needs none and CI
+    configures none. With one exported it must answer with the same contract and report the
+    credits the envelope charged, so a keyed run is never mistaken for a free one.
+    """
+    key, var = split_tape.api_key()
+    if not key:
+        pytest.skip("no CMC key exported — the keyless default is the tested path")
+    swaps, meta = pull_swaps(UNI, pages=1)
+    assert meta["error"] is None, f"keyed fetch via ${var} failed: {meta['error']}"
+    assert swaps and any(s.get("tp") in ("buy", "sell") for s in swaps)
+    assert meta["credits"] >= 1, "the keyed envelope reports what it charged"

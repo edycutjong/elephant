@@ -11,6 +11,11 @@ file unmodified.
     python3 scripts/split_tape.py                      # default watchlist
     python3 scripts/split_tape.py --address 0x... --pages 2
 
+The anonymous tier is rate-limited per IP. If it is exhausted the tool says so and stops; an
+OPTIONAL escape hatch is a free key from https://coinmarketcap.com/api exported as CMC_API_KEY
+(or COINMARKETCAP_API_KEY / CMC_PRO_API_KEY), which moves the same call to the keyed endpoint.
+With every one of those variables unset — the default — nothing is sent and nothing is read.
+
 Verified fields (live, 2026-09-03), /v1/dex/tokens/transactions:
     tp   'buy' | 'sell'      the side, per swap
     v    USD volume          verified: a0 * t0pu == v
@@ -18,14 +23,19 @@ Verified fields (live, 2026-09-03), /v1/dex/tokens/transactions:
 """
 
 import argparse
+import contextlib
 import json
+import os
 import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 
-BASE = "https://pro-api.coinmarketcap.com/public-api"
+BASE = "https://pro-api.coinmarketcap.com/public-api"  # keyless: the default and the judged path
+BASE_KEYED = "https://pro-api.coinmarketcap.com"  # only when a key is exported — the escape hatch
+KEY_VARS = ("CMC_API_KEY", "COINMARKETCAP_API_KEY", "CMC_PRO_API_KEY")
+KEY_URL = "https://coinmarketcap.com/api"
 PAGE = 100  # hard cap: limit=200 and 500 both return HTTP 400
 RETRIES = 3  # 429 AND 5xx are transient on the anonymous tier — back off, don't fail
 BACKOFF_S = 15  # 15s, 30s, 60s: measured recovery is under a minute
@@ -49,10 +59,67 @@ WATCHLIST = [
 ]
 
 
-def get(path, retries=RETRIES, **params):
-    """One keyless GET, with backoff on transient throttling.
+def api_key():
+    """The optional escape hatch: (key, variable name), or (None, None) when no key is exported.
 
-    Errors are RETURNED, never swallowed — see pull_swaps.
+    Read from the environment at CALL time, never cached at import and never read from disk,
+    so a shell with every variable unset is guaranteed to send nothing. The judged path is
+    keyless and this is what keeps it so; a key is for a reader whose IP the anonymous tier
+    has throttled, and it is never a precondition.
+    """
+    for var in KEY_VARS:
+        value = os.environ.get(var, "").strip()
+        if value:
+            return value, var
+    return None, None
+
+
+def active_base():
+    """The base URL the next call will use: the keyless surface unless a key is exported."""
+    return BASE_KEYED if api_key()[0] else BASE
+
+
+def describe_http_error(e):
+    """'HTTP 429 (error 1022): You've reached the limit for anonymous access…'
+
+    The status, the API's own error code and its own message — never a raw body. Until
+    2026-09-07 the error was the first 160 bytes of the response, which put a JSON blob cut
+    off mid-string on a judge's screen as the only explanation of a 105-second failure. The
+    body is parsed; when it is not JSON the HTTP reason phrase stands in, and a truncated
+    body is never what the reader sees.
+    """
+    raw = b""
+    with contextlib.suppress(Exception):  # a body that cannot be read must not mask the status
+        raw = e.read()
+    text = raw.decode(errors="replace") if isinstance(raw, bytes) else str(raw or "")
+    code = msg = None
+    try:
+        body = json.loads(text)
+        status = body.get("status") if isinstance(body.get("status"), dict) else body
+        code = status.get("error_code")
+        msg = status.get("error_message") or status.get("message")
+    except (ValueError, AttributeError):
+        pass
+    head = f"HTTP {e.code}"
+    if code not in (None, "", "0", 0):
+        head += f" (error {code})"
+    if msg:
+        return f"{head}: {' '.join(str(msg).split())[:120]}"
+    reason = None
+    with contextlib.suppress(Exception):  # a stub without urllib's internals must not raise
+        reason = e.reason
+    return f"{head}: {reason}" if reason and code in (None, "", "0", 0) else head
+
+
+def get(path, retries=RETRIES, **params):
+    """One GET — keyless by default — with backoff on transient throttling.
+
+    Errors are RETURNED, never swallowed — see pull_swaps. A returned error carries
+    `_throttled: True` when every retry was a 429 or 5xx, so the caller can explain a rate
+    limit as a rate limit rather than as a property of the token.
+
+    If a key is exported (see api_key) the identical request goes to the keyed base URL with
+    it in `X-CMC_PRO_API_KEY`; otherwise the request is the bare keyless one below.
 
     The anonymous tier throttles hard and recovers within roughly a minute. Observed
     2026-09-07, it expresses the same condition TWO ways:
@@ -64,18 +131,21 @@ def get(path, retries=RETRIES, **params):
     Any 429 or 5xx is treated as transient; a 4xx other than 429 is permanent and returns
     immediately, because retrying a 400 only wastes the judge's time.
     """
-    url = BASE + path + "?" + urllib.parse.urlencode(params)
+    key, _ = api_key()
+    url = (BASE_KEYED if key else BASE) + path + "?" + urllib.parse.urlencode(params)
+    headers = {"Accept": "application/json"}
+    if key:
+        headers["X-CMC_PRO_API_KEY"] = key
     last = "unknown error"
     for attempt in range(retries + 1):
-        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        req = urllib.request.Request(url, headers=headers)
         try:
             return json.load(urllib.request.urlopen(req, timeout=60))
         except urllib.error.HTTPError as e:
-            body = e.read().decode()[:160]
-            last = f"HTTP {e.code}: {body}"
+            last = describe_http_error(e)
             transient = e.code == 429 or 500 <= e.code < 600
             if not transient or attempt == retries:
-                return {"_err": last}
+                return {"_err": last, "_throttled": transient}
             wait = BACKOFF_S * (2**attempt)
             print(
                 f"    throttled (HTTP {e.code}) — waiting {wait}s "
@@ -85,27 +155,68 @@ def get(path, retries=RETRIES, **params):
             time.sleep(wait)
         except (urllib.error.URLError, TimeoutError, ValueError) as e:
             return {"_err": f"{type(e).__name__}: {e}"}
-    return {"_err": last}
+    return {"_err": last, "_throttled": True}
+
+
+def throttle_advice(first_error):
+    """What happened and what to do, for a run the rate limit killed outright.
+
+    Written for the reader who has just waited through 15 s + 30 s + 60 s of backoff: name the
+    tier, name both ways CMC reports it, and give the two ways through. The key is offered as
+    an escape hatch and described as one — the default path is keyless and stays keyless.
+    """
+    key, var = api_key()
+    waits = " + ".join(f"{BACKOFF_S * 2**i} s" for i in range(RETRIES))
+    if key:
+        return (
+            f"\nno token produced a split — CoinMarketCap throttled every fetch on the KEYED "
+            f"endpoint (${var} is exported).\n\n"
+            f"  what happened   {first_error}\n"
+            f"                  after {waits} of backoff. A keyed 429 is the key's own per-minute "
+            f"rate limit or its plan quota.\n"
+            f"  what to do      wait a minute and re-run, or unset {var} to use the keyless "
+            f"surface instead.\n"
+        )
+    return (
+        "\nno token produced a split — CoinMarketCap throttled every fetch.\n\n"
+        f"  what happened   {first_error}\n"
+        "                  CoinMarketCap's anonymous tier is rate-limited per IP and reports the\n"
+        '                  limit as HTTP 429 (error 1022) or as HTTP 500 "The system is busy".\n'
+        f"                  This script already backed off {waits}.\n"
+        "  what to do      wait a few minutes and re-run — the anonymous quota resets shortly.\n"
+        f"                  Or export a free key from {KEY_URL} and re-run:\n"
+        "                      export CMC_API_KEY=<your key>\n"
+        "                  The same call then goes to the keyed endpoint as X-CMC_PRO_API_KEY.\n"
+        "                  The default path stays keyless; the key is an escape hatch, never a\n"
+        "                  requirement.\n"
+    )
 
 
 def pull_swaps(address, platform="ethereum", pages=1):
     """Paginate the swap feed.
 
-    Returns (swaps, meta). meta['error'] is None on a clean run and a string otherwise.
+    Returns (swaps, meta). meta['error'] is None on a clean run and a string otherwise;
+    meta['throttled'] is True when that error was the rate limit. meta['credits'] is the sum
+    of the envelope's `status.credit_count` on the KEYED path and always 0 on the keyless one,
+    where no account exists to be charged.
 
     The error MUST travel back to the caller. An earlier version returned a bare empty
     list on HTTP 429, so a rate-limited fetch was indistinguishable from a token that
     genuinely had no swaps — the tool blamed the token for an infrastructure failure.
     """
     seen, out, cursor, fetched, err, stalled = set(), [], None, 0, None, False
+    throttled, credits, keyed = False, 0, api_key()[0] is not None
     for _ in range(pages):
         q = {"platform": platform, "address": address, "limit": PAGE}
         if cursor:
             q["lastId"] = cursor
         d = get("/v1/dex/tokens/transactions", **q)
         if "_err" in d:
-            err = d["_err"]
+            err, throttled = d["_err"], bool(d.get("_throttled"))
             break
+        if keyed:
+            with contextlib.suppress(TypeError, ValueError, AttributeError):
+                credits += int((d.get("status") or {}).get("credit_count") or 0)
         data = d.get("data") or {}
         batch = data.get("swaps") or []
         if not batch:
@@ -133,7 +244,13 @@ def pull_swaps(address, platform="ethereum", pages=1):
         if not cursor:
             break
         time.sleep(0.15)
-    return out, {"pages": fetched, "error": err, "stalled": stalled}
+    return out, {
+        "pages": fetched,
+        "error": err,
+        "stalled": stalled,
+        "throttled": throttled,
+        "credits": credits,
+    }
 
 
 def _confidence(n_buy, n_sell, avg_buy, avg_sell):
@@ -259,22 +376,27 @@ def main():
 
     targets = [(a.symbol, a.address)] if a.address else WATCHLIST
     started = time.time()
-    print(f"splitting the tape — keyless, {a.pages} page(s) x {PAGE} swaps per token\n")
+    key, key_var = api_key()
+    # The mode is printed on the first line and on the last, so a run can never pass off
+    # keyed output as the keyless default: "keyless" is a claim the transcript has to earn.
+    mode = f"keyed via ${key_var} (escape hatch — the default is keyless)" if key else "keyless"
+    print(f"splitting the tape — {mode}, {a.pages} page(s) x {PAGE} swaps per token\n")
     print(
         f"{'token':7}{'swaps':>7}{'avg buy $':>12}{'avg sell $':>12}{'ticket':>9}"
         f"{'buy w':>8}{'sell w':>8}{'top buy':>9}{'top sell':>10}{'net flow':>10}  note"
     )
     print("-" * 98)
 
-    rows, errors, stalled_any, tapes = [], [], False, {}
+    rows, errors, stalled_any, tapes, credits = [], [], False, {}, 0
     for sym, addr in targets:
         swaps, meta = pull_swaps(addr, a.platform, a.pages)
         tapes[sym] = swaps
         stalled_any = stalled_any or meta.get("stalled", False)
+        credits += meta.get("credits", 0)
         if meta["error"]:
             # An API failure is an API failure. Never let it read as a property of the token.
-            errors.append((sym, meta["error"]))
-            print(f"{sym:7}{'':>7}   API error — {meta['error'][:44]}")
+            errors.append((sym, meta["error"], meta.get("throttled", False)))
+            print(f"{sym:7}{'':>7}   API error — {meta['error'][:69]}")
             continue
         r = split(swaps)
         if not r:
@@ -297,8 +419,23 @@ def main():
             "so the run stopped early rather than spend calls on duplicates."
         )
 
+    throttled = [sym for sym, _, was_throttled in errors if was_throttled]
+    if rows and throttled:
+        hatch = (
+            f"unset {key_var} to fall back to the keyless surface"
+            if key
+            else f"export a free key from {KEY_URL} as CMC_API_KEY to bypass it"
+        )
+        print(
+            f"\n  note: {len(throttled)} token(s) missing above — CoinMarketCap's "
+            f"{'keyed' if key else 'anonymous'} tier throttled them ({', '.join(throttled)}). "
+            f"Wait a few minutes and re-run, or {hatch}."
+        )
+
     elapsed = time.time() - started
     if not rows:
+        if errors and throttled:
+            sys.exit(throttle_advice(errors[0][1]))
         if errors:
             sys.exit(f"\nno token produced a split — every fetch failed. First: {errors[0][1]}")
         sys.exit("no token produced a two-sided split")
@@ -355,9 +492,13 @@ def main():
         payload = {
             "captured_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(started)),
             "wall_clock_s": round(elapsed, 2),
-            "credits_used": 0,
-            "auth": "none — CoinMarketCap keyless /public-api surface",
-            "endpoint": f"{BASE}/v1/dex/tokens/transactions",
+            "credits_used": credits,
+            "auth": (
+                f"X-CMC_PRO_API_KEY from ${key_var} — keyed escape hatch, not the default path"
+                if key
+                else "none — CoinMarketCap keyless /public-api surface"
+            ),
+            "endpoint": f"{BASE_KEYED if key else BASE}/v1/dex/tokens/transactions",
             "pages_per_token": a.pages,
             "platform": a.platform,
             "page_size": PAGE,
@@ -388,11 +529,12 @@ def main():
                 if hero
                 else None
             ),
-            "errors": [{"symbol": s, "error": e} for s, e in errors],
+            "errors": [{"symbol": s, "error": e, "throttled": t} for s, e, t in errors],
         }
         with open(a.json, "w") as fh:
             json.dump(payload, fh, indent=2, sort_keys=True)
-        print(f"\nwrote {a.json}  ({elapsed:.1f}s wall clock, 0 credits — keyless)")
+        cost = f"{credits} credits — keyed via ${key_var}" if key else "0 credits — keyless"
+        print(f"\nwrote {a.json}  ({elapsed:.1f}s wall clock, {cost})")
 
 
 if __name__ == "__main__":
