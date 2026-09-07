@@ -78,6 +78,17 @@ section{padding:clamp(64px,9vw,120px) 0;scroll-margin-top:84px}
 .btn .arrow{transition:transform var(--t-fast) var(--ease)}
 .btn:hover .arrow{transform:translateX(3px)}
 .btn:hover .arrow-down{transform:translateY(3px)}
+.btn:hover .arrow-ext{transform:translate(2px,-2px)}
+/* the GitHub mark on the repository CTA: cap-height sized, inherits the button's ink */
+.btn .gh-mark{width:.9em;height:.9em;flex:none}
+/* every off-site link: ↗ instead of →, and a screen-reader note that a new tab opens */
+.arrow-ext{display:inline-block}
+a:not(.btn) .arrow-ext{font-size:.85em;margin-left:.3em;opacity:.8;transition:transform var(--t-fast) var(--ease),opacity var(--t-fast)}
+a:not(.btn):hover .arrow-ext{transform:translate(1px,-1px);opacity:1}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.btn-judge{border-color:rgba(255,176,32,.55);color:var(--elephant)}
+.btn-judge:hover{border-color:var(--elephant);color:var(--elephant);box-shadow:0 10px 34px -12px rgba(255,176,32,.45)}
+.btn-judge .sub{font-family:var(--font-mono);font-weight:400;font-size:.78rem;color:var(--muted);letter-spacing:0}
 .link-quiet{color:var(--muted);transition:color var(--t-fast)}
 .link-quiet:hover{color:var(--text)}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px;transition:transform var(--t-med) var(--ease),border-color var(--t-med),box-shadow var(--t-med)}
@@ -255,10 +266,11 @@ table.api tr.engine td{background:linear-gradient(90deg,rgba(255,176,32,.07),tra
 .copy.done{color:var(--elephant);border-color:var(--elephant)}
 .proof{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:20px}
 @media (max-width:900px){.proof{grid-template-columns:repeat(2,1fr)}}
-.proof a{display:block;padding:14px 16px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface);color:var(--text);transition:border-color var(--t-fast),transform var(--t-fast) var(--ease)}
+.proof a{display:block;position:relative;padding:14px 16px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface);color:var(--text);transition:border-color var(--t-fast),transform var(--t-fast) var(--ease)}
 .proof a:hover{border-color:var(--elephant);transform:translateY(-2px)}
 .proof .f{font-family:var(--font-mono);font-size:.8rem;color:var(--herd)}
 .proof .m{font-size:.82rem;color:var(--muted);margin-top:4px}
+.proof .arrow-ext{position:absolute;top:10px;right:12px;margin:0;color:var(--muted)}
 
 /* ── faq / limits ────────────────────────────────────────────────────────────── */
 .faq details{margin-top:10px}
@@ -326,7 +338,12 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
   .proof{grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
   .proof a{padding:10px 12px}
   .proof .f{font-size:.72rem}
-  .final .btn-primary{padding:14px 22px;font-size:1rem}
+  /* the filename fills the card at this width; the meta line ends in a short "UTC", so the mark sits there */
+  .proof .arrow-ext{top:auto;bottom:10px;right:12px}
+  .final .cta-row{gap:8px}
+  .final .btn{padding:14px 18px}
+  .final .btn-primary{font-size:1rem}
+  .btn-judge .sub{display:none}
   footer{padding:32px 0 40px;font-size:.85rem}
   footer .cols{grid-template-columns:1fr 1fr;gap:18px}
   footer .cols>div:first-child{grid-column:1/-1}
@@ -356,8 +373,8 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
       <a href="#api">API</a>
       <a href="#run">Run</a>
       <a class="deck" href="pitch/">Deck</a>
-      <a class="gh" href="{{repo}}" aria-label="Source on GitHub" title="Source on GitHub" rel="noopener">
-        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      <a class="gh" href="{{repo}}" aria-label="Source on GitHub (opens in a new tab)" title="Source on GitHub" {{blank}}>
+        {{gh_icon}}
       </a>
     </nav>
   </div>
@@ -455,7 +472,7 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
           <summary>The full receipt row — every key, verbatim
             <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
           </summary>
-          <div class="body"><p>Sorted keys; the two per-wallet share arrays are elided here and complete in <a href="{{repo}}/blob/main/docs/proof/ausd.json" rel="noopener">docs/proof/ausd.json</a>.</p><pre class="json" tabindex="0" aria-label="Full raw receipt row for AUSD">{{json_panel}}</pre></div>
+          <div class="body"><p>Sorted keys; the two per-wallet share arrays are elided here and complete in <a href="{{repo}}/blob/main/docs/proof/ausd.json" {{blank}}>docs/proof/ausd.json{{ext}}</a>.</p><pre class="json" tabindex="0" aria-label="Full raw receipt row for AUSD">{{json_panel}}</pre></div>
         </details>
         <details>
           <summary>Top ten makers on each side
@@ -668,10 +685,10 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
     <p class="muted" style="margin-top:16px;font-size:.95rem">Your numbers will differ — the window moves with the market, and that is the point: the receipt above was produced by this exact command at {{ausd.captured_short}}. If the same wallet still dominates when you run it, the finding is persistent; if it does not, you have just watched the tape change.</p>
 
     <div class="proof">
-      <a href="{{repo}}/blob/main/docs/proof/ausd.json" rel="noopener"><div class="f">docs/proof/ausd.json</div><div class="m">{{ausd.symbol}} · {{ausd.swaps}} swaps · {{ausd.captured_short}}</div></a>
-      <a href="{{repo}}/blob/main/docs/proof/shfl.json" rel="noopener"><div class="f">docs/proof/shfl.json</div><div class="m">{{shfl.symbol}} · {{shfl.swaps}} swaps · {{shfl.captured_short}}</div></a>
-      <a href="{{repo}}/blob/main/docs/proof/bingo.json" rel="noopener"><div class="f">docs/proof/bingo.json</div><div class="m">{{bingo.symbol}} · {{bingo.swaps}} swaps · {{bingo.captured_short}}</div></a>
-      <a href="{{repo}}/blob/main/docs/proof/{{churn.file}}" rel="noopener"><div class="f">docs/proof/{{churn.file}}</div><div class="m">{{churn.symbol}} · {{churn.swaps}} swaps · {{churn.captured_short}}</div></a>
+      <a href="{{repo}}/blob/main/docs/proof/ausd.json" {{blank}}><div class="f">docs/proof/ausd.json{{ext}}</div><div class="m">{{ausd.symbol}} · {{ausd.swaps}} swaps · {{ausd.captured_short}}</div></a>
+      <a href="{{repo}}/blob/main/docs/proof/shfl.json" {{blank}}><div class="f">docs/proof/shfl.json{{ext}}</div><div class="m">{{shfl.symbol}} · {{shfl.swaps}} swaps · {{shfl.captured_short}}</div></a>
+      <a href="{{repo}}/blob/main/docs/proof/bingo.json" {{blank}}><div class="f">docs/proof/bingo.json{{ext}}</div><div class="m">{{bingo.symbol}} · {{bingo.swaps}} swaps · {{bingo.captured_short}}</div></a>
+      <a href="{{repo}}/blob/main/docs/proof/{{churn.file}}" {{blank}}><div class="f">docs/proof/{{churn.file}}{{ext}}</div><div class="m">{{churn.symbol}} · {{churn.swaps}} swaps · {{churn.captured_short}}</div></a>
     </div>
     <p class="muted" style="margin-top:14px;font-size:.9rem">Also in the repo: 21 tests (17 offline, 4 against the live contract), a 2,000-case property check that the maker share can never escape its own denominator, and a CI job that runs the real split on every push with no secret configured.</p>
   </div>
@@ -717,9 +734,9 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
     <div class="kicker reveal">Net flow is one number. The split is four.</div>
     <h2 class="reveal d1">Run the split on a token you care about.</h2>
     <div class="cta-row reveal d2">
-      <a class="btn btn-primary" href="{{repo}}" rel="noopener">Open the repository <span class="arrow" aria-hidden="true">→</span></a>
+      <a class="btn btn-primary" href="{{repo}}" {{blank}}>{{gh_icon_btn}}Open the repository {{ext}}</a>
       <a class="btn" href="pitch/">Watch the deck <span class="arrow" aria-hidden="true">→</span></a>
-      <a class="btn" href="{{repo}}/blob/main/JUDGE.md" rel="noopener">JUDGE.md</a>
+      <a class="btn btn-judge" href="{{repo}}/blob/main/JUDGE.md" {{blank}}>JUDGE.md <span class="sub">· the 30-second path</span>{{ext}}</a>
     </div>
   </div>
 </section>
@@ -730,38 +747,38 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
     <div class="cols">
       <div>
         <a class="brand" href="#top"><img src="assets/icon.svg" alt="" width="30" height="30">Elephant Tracks</a>
-        <p style="margin-top:12px;max-width:40ch">Splits the tape. Built for the <a href="{{event}}" rel="noopener">Build with CMC: API Hackathon</a>, Data &amp; Visualisation track. MIT licensed.</p>
+        <p style="margin-top:12px;max-width:40ch">Splits the tape. Built on the CoinMarketCap API for the <a href="{{event}}" {{blank}}>Build with CMC: API Hackathon{{ext}}</a>, Data &amp; Visualisation track. MIT licensed.</p>
       </div>
       <div>
         <h4>Repository</h4>
         <ul>
-          <li><a class="link-quiet" href="{{repo}}" rel="noopener">Source</a></li>
-          <li><a class="link-quiet" href="{{repo}}/blob/main/JUDGE.md" rel="noopener">For judges</a></li>
-          <li><a class="link-quiet" href="{{repo}}/blob/main/DEMO.md" rel="noopener">Demo transcript</a></li>
-          <li><a class="link-quiet" href="{{repo}}/blob/main/ARCHITECTURE.md" rel="noopener">Architecture</a></li>
+          <li><a class="link-quiet" href="{{repo}}" {{blank}}>Source{{ext}}</a></li>
+          <li><a class="link-quiet" href="{{repo}}/blob/main/JUDGE.md" {{blank}}>For judges{{ext}}</a></li>
+          <li><a class="link-quiet" href="{{repo}}/blob/main/DEMO.md" {{blank}}>Demo transcript{{ext}}</a></li>
+          <li><a class="link-quiet" href="{{repo}}/blob/main/ARCHITECTURE.md" {{blank}}>Architecture{{ext}}</a></li>
         </ul>
       </div>
       <div>
         <h4>Evidence</h4>
         <ul>
-          <li><a class="link-quiet" href="{{repo}}/tree/main/docs/proof" rel="noopener">Receipts</a></li>
-          <li><a class="link-quiet" href="{{repo}}/blob/main/FEEDBACK.md" rel="noopener">API feedback for CMC</a></li>
-          <li><a class="link-quiet" href="{{repo}}/blob/main/scripts/split_tape.py" rel="noopener">split_tape.py</a></li>
+          <li><a class="link-quiet" href="{{repo}}/tree/main/docs/proof" {{blank}}>Receipts{{ext}}</a></li>
+          <li><a class="link-quiet" href="{{repo}}/blob/main/FEEDBACK.md" {{blank}}>API feedback for CMC{{ext}}</a></li>
+          <li><a class="link-quiet" href="{{repo}}/blob/main/scripts/split_tape.py" {{blank}}>split_tape.py{{ext}}</a></li>
           <li><a class="link-quiet" href="pitch/">Pitch deck</a></li>
         </ul>
       </div>
       <div>
         <h4>Data</h4>
         <ul>
-          <li><a class="link-quiet" href="https://coinmarketcap.com/api/documentation/v1/" rel="noopener">CoinMarketCap API</a></li>
-          <li><a class="link-quiet" href="{{event}}" rel="noopener">The hackathon</a></li>
-          <li><a class="link-quiet" href="https://x.com/edycutjong" rel="noopener">@edycutjong</a></li>
+          <li><a class="link-quiet" href="https://coinmarketcap.com/api/documentation/v1/" {{blank}}>CoinMarketCap API{{ext}}</a></li>
+          <li><a class="link-quiet" href="{{event}}" {{blank}}>The hackathon{{ext}}</a></li>
+          <li><a class="link-quiet" href="https://x.com/edycutjong" {{blank}}>@edycutjong{{ext}}</a></li>
         </ul>
       </div>
     </div>
     <div class="bottom">
       <span>captured {{ausd.captured_short}} · 0 credits · no key</span>
-      <span><a class="link-quiet" href="{{repo}}/releases/latest" rel="noopener">{{version}}</a></span>
+      <span><a class="link-quiet" href="{{repo}}/releases/latest" {{blank}}>{{version}}{{ext}}</a></span>
     </div>
   </div>
 </footer>
