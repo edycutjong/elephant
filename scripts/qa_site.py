@@ -11,8 +11,8 @@ What it checks, per surface (site/index.html and site/pitch/index.html):
   summary_large_image, an author and a creator handle, and an og:image that is a local PNG
   of exactly 1200x630 under 1 MB whose declared width/height match its header and whose
   ?v= cache-buster is the hash of its bytes
-- network: the only external request is Google Fonts; the page renders with every
-  external request blocked
+- network: the page loads no external asset at all — fonts are self-hosted — and it still
+  renders with every off-origin request blocked
 - layout: no horizontal overflow at 375 / 768 / 1440; every anchor and local link resolves;
   every image loads; no JS errors; the mobile height is under budget
 - structure: heading levels never skip; a link inside running text is underlined, not told
@@ -42,12 +42,16 @@ What it checks, per surface (site/index.html and site/pitch/index.html):
   sibling asset work: a loop that pumps twice or snaps at the seam contradicts its own story.
 """
 
+import contextlib
+import functools
 import hashlib
 import io
 import json
 import re
 import struct
 import sys
+import threading
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -58,6 +62,35 @@ from playwright.sync_api import sync_playwright
 BUILD = Path(__file__).resolve().parents[1]
 SITE = BUILD / "site"
 SITE_HOST = "elephant.edycu.dev"
+
+# The surfaces are served over HTTP for the run, not opened as file:// URLs. The fonts are
+# self-hosted and a font fetch is always CORS-mode, so under file:// (origin "null") the
+# browser refuses its own font files and every page reports a console error that the deployed
+# site never has. Serving them is also simply the truer test: this is how a judge loads them.
+ORIGIN = ""
+
+
+@contextlib.contextmanager
+def serving(root):
+    """Serve `root` on an ephemeral port for the duration of the run."""
+    handler = functools.partial(SimpleHTTPRequestHandler, directory=str(root))
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    httpd.RequestHandlerClass.log_message = lambda *a, **k: None
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    global ORIGIN
+    ORIGIN = f"http://127.0.0.1:{httpd.server_address[1]}"
+    try:
+        yield ORIGIN
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def url_of(path):
+    """The served URL for a page under SITE."""
+    return f"{ORIGIN}/{Path(path).resolve().relative_to(SITE).as_posix()}"
+
+
 OG_SIZE = (1200, 630)  # every platform resamples to this; ship it, do not let them
 OG_MAX_BYTES = 1_048_576
 # values a scaffold leaves behind in the author field; the real name is asserted by a human
@@ -253,9 +286,9 @@ def check_static(path, name):
         if m:
             ext.add(m.group(1))
     ok(
-        f"{name}: only Google Fonts loaded externally",
-        all(h.startswith("https://fonts.googleapis.com") for h in ext),
-        sorted(ext),
+        f"{name}: no externally loaded assets at all",
+        not ext,
+        sorted(ext) or "0 external",
     )
     honesty = [
         "No, and it says so on every number",
@@ -414,7 +447,7 @@ def check_fold(browser, path):
     drives it; the answer is real text once open."""
     ctx = browser.new_context(viewport={"width": 1440, "height": 900})
     page = ctx.new_page()
-    page.goto(path.as_uri(), wait_until="load")
+    page.goto(url_of(path), wait_until="load")
     page.evaluate("document.querySelectorAll('.reveal').forEach(e => e.classList.add('in'))")
     page.wait_for_timeout(300)
     sel = "#limits details:nth-of-type(1)"
@@ -480,7 +513,7 @@ def check_fold(browser, path):
     ctx.close()
     ctx = browser.new_context(viewport={"width": 1440, "height": 900}, reduced_motion="reduce")
     page = ctx.new_page()
-    page.goto(path.as_uri(), wait_until="load")
+    page.goto(url_of(path), wait_until="load")
     page.wait_for_timeout(300)
     page.locator(sel + " > summary").click()
     st = page.evaluate(FOLD_JS, sel)
@@ -504,7 +537,7 @@ def check_widths(browser, path, name, out, is_deck):
         page.on(
             "console", lambda m, errs=errors: errs.append(m.text) if m.type == "error" else None
         )
-        page.goto(path.as_uri(), wait_until="load")
+        page.goto(url_of(path), wait_until="load")
         page.wait_for_timeout(600)
         sw = page.evaluate(
             "Math.max(document.documentElement.scrollWidth, document.body.scrollWidth)"
@@ -658,7 +691,7 @@ def check_widths(browser, path, name, out, is_deck):
 def check_reduced_motion(browser, path, name, out, is_deck):
     ctx = browser.new_context(viewport={"width": 1440, "height": 900}, reduced_motion="reduce")
     page = ctx.new_page()
-    page.goto(path.as_uri() + ("#5" if is_deck else ""), wait_until="load")
+    page.goto(url_of(path) + ("#5" if is_deck else ""), wait_until="load")
     page.wait_for_timeout(600)
     css_anim = page.evaluate(
         "[...document.querySelectorAll('*')].filter(e => { const cs = getComputedStyle(e);"
@@ -705,14 +738,16 @@ def check_offline(browser, path, name, out):
     blocked = []
 
     def route(r):
-        if r.request.url.startswith("http"):
+        # "External" now means off-origin. The page is served over HTTP, so blocking every
+        # http:// request would abort the document itself and prove nothing.
+        if not r.request.url.startswith(ORIGIN):
             blocked.append(r.request.url)
             r.abort()
         else:
             r.continue_()
 
     page.route("**/*", route)
-    page.goto(path.as_uri(), wait_until="load")
+    page.goto(url_of(path), wait_until="load")
     page.wait_for_timeout(500)
     txt = page.evaluate("document.body.textContent.replace(/\\s+/g,' ').length")
     svgs = page.evaluate("document.querySelectorAll('svg').length")
@@ -728,7 +763,7 @@ def check_offline(browser, path, name, out):
 def check_hover(browser, path, name, sels, prep=""):
     ctx = browser.new_context(viewport={"width": 1440, "height": 900})
     page = ctx.new_page()
-    page.goto(path.as_uri(), wait_until="load")
+    page.goto(url_of(path), wait_until="load")
     if prep:
         page.evaluate(prep)
     page.wait_for_timeout(900)
@@ -780,7 +815,7 @@ def stage_state(page):
 def check_deck_stage_animation(browser, path):
     ctx = browser.new_context(viewport={"width": 1440, "height": 810})
     page = ctx.new_page()
-    page.goto(path.as_uri() + "#5", wait_until="load")
+    page.goto(url_of(path) + "#5", wait_until="load")
     page.wait_for_timeout(300)
     n = page.evaluate(SCRUB_JS, 0)
     ok("deck: stage animations found to scrub", n >= 8, n)
@@ -836,7 +871,7 @@ def check_deck_stage_animation(browser, path):
 def check_landing_split_animation(browser, path):
     ctx = browser.new_context(viewport={"width": 1440, "height": 900})
     page = ctx.new_page()
-    page.goto(path.as_uri(), wait_until="load")
+    page.goto(url_of(path), wait_until="load")
     page.wait_for_timeout(300)
     page.evaluate(
         "document.querySelectorAll('.reveal').forEach(e => e.classList.add('in')); document.querySelector('svg.split').classList.add('go')"
@@ -947,7 +982,7 @@ def main():
     out = Path(sys.argv[sys.argv.index("--out") + 1]) if "--out" in sys.argv else BUILD / ".qa"
     out.mkdir(parents=True, exist_ok=True)
     landing, deck = SITE / "index.html", SITE / "pitch" / "index.html"
-    with sync_playwright() as pw:
+    with serving(SITE), sync_playwright() as pw:
         browser = pw.chromium.launch()
         for path, name, is_deck in ((landing, "landing", False), (deck, "deck", True)):
             print(f"\n=== {name} ===")
