@@ -52,6 +52,10 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
 }
 a{color:var(--herd);text-decoration:none}
 a:hover{color:#8ec0ff}
+/* a link inside running text is told apart by an underline, not by hue alone (WCAG 1.4.1) */
+p a,details .body a,.aside a,.viz-foot a{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.16em;text-decoration-color:rgba(76,154,255,.55);transition:text-decoration-color var(--t-fast)}
+p a:hover,details .body a:hover,.aside a:hover,.viz-foot a:hover{text-decoration-color:currentColor}
+.viz-foot a{text-decoration-color:rgba(139,152,169,.6)}
 ::selection{background:rgba(255,176,32,.35)}
 img,svg{max-width:100%;height:auto;display:block}
 h1,h2,h3{font-family:var(--font-display);letter-spacing:-.02em;line-height:1.08;margin:0}
@@ -166,7 +170,8 @@ svg.split .inbar{fill:#0B0E14;font-size:15px;font-weight:600}
 .stat-table th,.stat-table td{padding:14px 8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
 .stat-table th{font-family:var(--font-mono);font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
 .stat-table td.num,.stat-table th.num{text-align:right}
-.stat-table .side{font-family:var(--font-display);font-weight:700;font-size:1.05rem}
+/* the row labels are header cells (scope=row) so every number has a header on both axes */
+.stat-table th.side{font-family:var(--font-display);font-weight:700;font-size:1.05rem;letter-spacing:0;text-transform:none;color:var(--text)}
 .stat-table tr.sell td{background:linear-gradient(90deg,rgba(255,176,32,.06),transparent)}
 .stat-big{font-family:var(--font-display);font-weight:800;font-size:clamp(2rem,4.2vw,3.6rem);line-height:1;letter-spacing:-.03em;font-feature-settings:var(--num)}
 .netline{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 10px;border-bottom:1px solid var(--border);flex-wrap:wrap}
@@ -301,7 +306,8 @@ footer{padding:44px 0 60px;color:var(--muted);font-size:.9rem}
 footer .cols{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:24px}
 @media (max-width:820px){footer .cols{grid-template-columns:1fr 1fr}}
 @media (max-width:480px){footer .cols{grid-template-columns:1fr}}
-footer h4{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:500}
+/* column titles: h3, the level after the section h2s, styled as labels rather than headings */
+footer h3{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:500;line-height:1.6}
 footer ul{list-style:none;margin:0;padding:0}
 footer li{margin:6px 0}
 footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:var(--font-mono);font-size:.78rem}
@@ -442,16 +448,16 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
         </div>
         <div class="scroll-x">
         <table class="stat-table" aria-label="AUSD split by side">
-          <thead><tr><th></th><th class="num">swaps</th><th class="num">wallets</th><th class="num">top maker's share</th></tr></thead>
+          <thead><tr><th scope="col"><span class="sr-only">side</span></th><th scope="col" class="num">swaps</th><th scope="col" class="num">wallets</th><th scope="col" class="num">top maker's share</th></tr></thead>
           <tbody>
             <tr class="sell">
-              <td class="side">sell</td>
+              <th scope="row" class="side">sell</th>
               <td class="num mono">{{ausd.sells}}</td>
               <td class="num mono">{{ausd.sell_wallets}}</td>
               <td class="num"><div class="stat-big amber">{{ausd.sell_top_share}}</div><div class="mono muted" style="font-size:.8rem;margin-top:6px">{{ausd.sell_top_vol}} in {{ausd.sell_top_swaps}} swaps</div></td>
             </tr>
             <tr class="buy">
-              <td class="side">buy</td>
+              <th scope="row" class="side">buy</th>
               <td class="num mono">{{ausd.buys}}</td>
               <td class="num mono blue">{{ausd.buy_wallets}}</td>
               <td class="num"><div class="stat-big blue">{{ausd.buy_top_share}}</div><div class="mono muted" style="font-size:.8rem;margin-top:6px">{{ausd.buy_top_vol}} in {{ausd.buy_top_swaps}} swaps</div></td>
@@ -532,8 +538,8 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
         {{struct_b}}
         <div class="kv">
           <span>net flow</span><span class="flag">0.0%</span>
-          <span>top seller's share</span><span class="amber" style="opacity:.6">0.1%</span>
-          <span>top buyer's share</span><span class="blue" style="opacity:.6">0.1%</span>
+          <span>top seller's share</span><span class="muted">0.1%</span>
+          <span>top buyer's share</span><span class="muted">0.1%</span>
         </div>
       </div>
     </div>
@@ -764,7 +770,7 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
         <p style="margin-top:12px;max-width:40ch">Splits the tape. Built on the CoinMarketCap API for the <a href="{{event}}" {{blank}}>Build with CMC: API Hackathon{{ext}}</a>, Data &amp; Visualisation track. MIT licensed.</p>
       </div>
       <div>
-        <h4>Repository</h4>
+        <h3>Repository</h3>
         <ul>
           <li><a class="link-quiet" href="{{repo}}" {{blank}}>Source{{ext}}</a></li>
           <li><a class="link-quiet" href="{{repo}}/blob/main/JUDGE.md" {{blank}}>For judges{{ext}}</a></li>
@@ -773,7 +779,7 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
         </ul>
       </div>
       <div>
-        <h4>Evidence</h4>
+        <h3>Evidence</h3>
         <ul>
           <li><a class="link-quiet" href="{{repo}}/tree/main/docs/proof" {{blank}}>Receipts{{ext}}</a></li>
           <li><a class="link-quiet" href="{{repo}}/blob/main/FEEDBACK.md" {{blank}}>API feedback for CMC{{ext}}</a></li>
@@ -782,7 +788,7 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
         </ul>
       </div>
       <div>
-        <h4>Data</h4>
+        <h3>Data</h3>
         <ul>
           <li><a class="link-quiet" href="https://coinmarketcap.com/api/documentation/v1/" {{blank}}>CoinMarketCap API{{ext}}</a></li>
           <li><a class="link-quiet" href="{{event}}" {{blank}}>The hackathon{{ext}}</a></li>

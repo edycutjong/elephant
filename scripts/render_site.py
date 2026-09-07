@@ -304,9 +304,11 @@ def quadrant_svg(points):
         lx = p.get("lx", 20)
         ly = p.get("ly", 5)
         anchor = p.get("anchor", "start")
+        # the name opens with the two visible labels, verbatim and in order, so the visible
+        # text of the button is a prefix of its accessible name (WCAG 2.5.3, label in name)
         aria = (
-            f"{p['symbol']}: top seller {pct(p['sx'])}, top buyer {pct(p['by'])}, "
-            f"net flow {signed_pct(p['net'])}"
+            f"{p['symbol']} net {signed_pct(p['net'])} — top seller {pct(p['sx'])}, "
+            f"top buyer {pct(p['by'])}"
         )
         dots += f"""
   <g class="pt" data-token="{p["symbol"]}" transform="translate({x:.1f},{y:.1f})" \
