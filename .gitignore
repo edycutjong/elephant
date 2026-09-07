@@ -34,9 +34,9 @@ data/pairs.json
 
 # kitchen guard — specs/, submission/ and assets/ live one level up and must never
 # enter this repo. /publish copies selected artifacts into docs/, never into these.
-assets/
-specs/
-submission/
+/assets/
+/specs/
+/submission/
 _ideas/
 _specs/
 graphify-out/
