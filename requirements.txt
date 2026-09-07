@@ -1,0 +1,2 @@
+# Runtime: none. split_tape.py is stdlib-only by design —
+# a judge runs it with a bare python3 and no install step.
