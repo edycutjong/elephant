@@ -11,7 +11,10 @@ Not three suites — three tests, each answering a question coverage cannot.
     a broken response into a number.
 """
 
+import io
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 import pytest
@@ -79,6 +82,48 @@ def test_rate_limited_fetch_is_not_reported_as_an_empty_tape(monkeypatch):
     assert swaps == []
     assert meta["error"] is not None, "a 429 must not read as 'this token has no swaps'"
     assert "429" in meta["error"]
+
+
+def test_transient_throttle_is_retried_before_the_row_is_failed(monkeypatch):
+    """Live run 2026-09-07: the full 8-token watchlist failed on every single token.
+
+    The anonymous tier throttles hard and expresses it TWO ways — HTTP 429 (error_code
+    1022) and HTTP 500 ("The system is busy"). The first version of this backoff retried
+    only on 429 and the very next live run failed with eight 500s, so both must be
+    treated as transient. A 400 must NOT be retried: it is permanent, and retrying it
+    only wastes the judge's time.
+    """
+    calls = {"n": 0}
+
+    class Boom(urllib.error.HTTPError):
+        def __init__(self, code):
+            self.code, self._body = code, b'{"error_code":"1022"}'
+
+        def read(self):
+            return self._body
+
+    def flaky(url, timeout=None):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise Boom(429)  # "reached the limit for anonymous access"
+        if calls["n"] == 2:
+            raise Boom(500)  # "The system is busy, please try again later!"
+        return io.BytesIO(b'{"data": {"swaps": []}}')
+
+    monkeypatch.setattr(split_tape.time, "sleep", lambda s: None)
+    monkeypatch.setattr(split_tape.urllib.request, "urlopen", flaky)
+    assert "_err" not in split_tape.get("/x")  # recovered on the third attempt
+    assert calls["n"] == 3
+
+    calls["n"] = 0
+
+    def always_400(url, timeout=None):
+        calls["n"] += 1
+        raise Boom(400)
+
+    monkeypatch.setattr(split_tape.urllib.request, "urlopen", always_400)
+    assert "_err" in split_tape.get("/x")
+    assert calls["n"] == 1, "a 400 is permanent — retrying it only wastes time"
 
 
 def test_zero_average_side_does_not_raise_before_the_confidence_gate():
