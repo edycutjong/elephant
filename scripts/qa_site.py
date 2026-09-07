@@ -18,6 +18,12 @@ What it checks, per surface (site/index.html and site/pitch/index.html):
 - prefers-reduced-motion: zero running animations, every reveal visible, the split rows
   visible, the inline mark swapped to its static layer, the deck stage in its final state
 - interaction: hover feedback on every interactive class, proven by screenshot byte-diff
+- links: every link that leaves the site opens a new tab (target=_blank, rel noopener) and
+  says so to a screen reader; same-site links stay in the tab
+- the map: no token label crosses a dashed guide line, leaves the plot frame, or touches
+  another token's label or dot — measured from the rendered boxes at every width
+- the FAQ fold: a real 0fr → 1fr transition of 150–250 ms that only ever rises, the keyboard
+  toggles it, and under prefers-reduced-motion it snaps with no transition at all
 - animation: the staged split on both surfaces is sampled through its whole play with the
   animations paused at fixed times — it must hold the bar alone first, never reverse, never
   jump, and end in exactly the reduced-motion state. The one loop on the page (the inline
@@ -31,6 +37,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 import numpy as np
 from PIL import Image
@@ -38,6 +45,7 @@ from playwright.sync_api import sync_playwright
 
 BUILD = Path(__file__).resolve().parents[1]
 SITE = BUILD / "site"
+SITE_HOST = "elephant.edycu.dev"
 MOBILE_HEIGHT_BUDGET = 9000  # css px at 375 wide; the page measured 12,707 before condensing
 CONTRAST_FLOOR = 5.6  # the minimum measured before this harness existed; do not regress it
 FAIL = []
@@ -158,6 +166,176 @@ def check_static(path, name):
             ok(f"{name}: honesty disclosure intact: {h[:40]!r}", h in html)
 
 
+LINKS_JS = """
+() => [...document.querySelectorAll('a[href]')].map(a => ({
+  href: a.getAttribute('href'), target: a.getAttribute('target'), rel: a.getAttribute('rel') || '',
+  says: /opens in a new tab/i.test((a.getAttribute('aria-label') || '') + ' ' + a.textContent) }))
+"""
+
+
+def check_links(page, name):
+    """Off-site links open a new tab and say so; same-site links keep the tab."""
+    seen = set()
+    for a in page.evaluate(LINKS_JS):
+        href = a["href"]
+        if href in seen:
+            continue
+        seen.add(href)
+        external = href.startswith("http") and urlparse(href).netloc != SITE_HOST
+        if external:
+            ok(
+                f"{name}: external {href} opens a new tab and says so",
+                a["target"] == "_blank" and "noopener" in a["rel"] and a["says"],
+                {k: a[k] for k in ("target", "rel", "says")},
+            )
+        else:
+            ok(f"{name}: same-site {href} stays in the tab", a["target"] != "_blank")
+
+
+MAP_JS = """
+() => {
+  const svg = document.querySelector('svg.quadrant'); if (!svg) return null;
+  const R = e => { const b = e.getBoundingClientRect(); return {l:b.left, t:b.top, r:b.right, b:b.bottom}; };
+  const U = es => es.map(R).reduce((a, b) => ({l:Math.min(a.l,b.l), t:Math.min(a.t,b.t), r:Math.max(a.r,b.r), b:Math.max(a.b,b.b)}));
+  return { frame: R(svg.querySelector('rect')),
+    mid: [...svg.querySelectorAll('line.mid')].map(R), grid: [...svg.querySelectorAll('line.grid')].map(R),
+    pts: [...svg.querySelectorAll('.pt')].map(g => ({ token: g.dataset.token,
+      dot: U([...g.children].filter(c => c.tagName !== 'text' && !c.classList.contains('halo'))),
+      labels: [...g.querySelectorAll('text')].map(R) })) };
+}
+"""
+
+
+def hits(a, b, pad=1.0):
+    return (
+        a["l"] < b["r"] + pad
+        and a["r"] > b["l"] - pad
+        and a["t"] < b["b"] + pad
+        and a["b"] > b["t"] - pad
+    )
+
+
+def check_map_labels(page, name):
+    """The quadrant map: every token label inside the frame, off the dashed guide lines, and
+    clear of every other token's label and dot. Measured from the rendered boxes."""
+    m = page.evaluate(MAP_JS)
+    if not ok(f"{name}: quadrant map present with four labelled points", m and len(m["pts"]) == 4):
+        return
+    f = m["frame"]
+    inside, on_mid, on_other, on_grid = [], [], [], 0
+    for p in m["pts"]:
+        for lb in p["labels"]:
+            if not (
+                lb["l"] >= f["l"] and lb["r"] <= f["r"] and lb["t"] >= f["t"] and lb["b"] <= f["b"]
+            ):
+                inside.append(p["token"])
+            if any(hits(lb, ln) for ln in m["mid"]):
+                on_mid.append(p["token"])
+            on_grid += sum(1 for ln in m["grid"] if hits(lb, ln, 0))
+            for q in m["pts"]:
+                if q["token"] == p["token"]:
+                    continue
+                if hits(lb, q["dot"]) or any(hits(lb, ol) for ol in q["labels"]):
+                    on_other.append((p["token"], q["token"]))
+    ok(f"{name}: every map label inside the plot frame", not inside, inside)
+    ok(f"{name}: no map label crosses a dashed guide line", not on_mid, on_mid)
+    ok(f"{name}: no map label touches another token's label or dot", not on_other, on_other)
+    NOTES[f"{name}.map_grid_crossings"] = on_grid  # the faint 25% grid: reported, not gated
+
+
+FOLD_JS = """
+(sel) => { const d = document.querySelector(sel); const f = d.querySelector('.fold');
+  return { open: d.open, rows: parseFloat(getComputedStyle(f).gridTemplateRows), content: f.firstElementChild.scrollHeight,
+    anims: document.getAnimations().filter(a => a.effect && a.effect.target === f).map(a => a.effect.getTiming().duration) }; }
+"""
+
+
+def check_fold(browser, path):
+    """The FAQ fold: open first, then a 0fr → 1fr transition that only rises; the keyboard
+    drives it; the answer is real text once open."""
+    ctx = browser.new_context(viewport={"width": 1440, "height": 900})
+    page = ctx.new_page()
+    page.goto(path.as_uri(), wait_until="load")
+    page.evaluate("document.querySelectorAll('.reveal').forEach(e => e.classList.add('in'))")
+    page.wait_for_timeout(300)
+    sel = "#limits details:nth-of-type(1)"
+    page.locator(sel + " > summary").click()
+    st = page.evaluate(FOLD_JS, sel)
+    ok(
+        "landing: clicking a question opens it and starts one fold transition",
+        st["open"] and len(st["anims"]) == 1,
+        st,
+    )
+    dur = st["anims"][0] if st["anims"] else 0
+    ok("landing: the fold takes 150–250 ms", 150 <= dur <= 250, dur)
+    rows = []
+    for t in range(0, int(dur) + 1, 25):
+        page.evaluate(SCRUB_JS, t)
+        rows.append(page.evaluate(FOLD_JS, sel)["rows"])
+    ok(
+        "landing: the fold only ever opens (no reversal) and ends at its content height",
+        monotone(rows, +1) and rows[0] < 2 and abs(rows[-1] - st["content"]) < 2,
+        [round(r) for r in rows],
+    )
+    ok(
+        "landing: no snap — no fold sample moves more than 60% of the height",
+        max_step(rows) < 0.6 * st["content"],
+    )
+    page.evaluate("document.getAnimations().forEach(a => a.finish())")
+    page.wait_for_timeout(50)
+    ok(
+        "landing: the opened answer is selectable, findable text",
+        page.evaluate(
+            "(sel) => { const d = document.querySelector(sel); const b = d.querySelector('.body');"
+            " return getComputedStyle(b).visibility === 'visible' && getComputedStyle(b).userSelect !== 'none'"
+            " && document.body.innerText.includes('No, and it says so on every number'); }",
+            sel,
+        ),
+    )
+    page.locator(sel + " > summary").click()
+    page.wait_for_timeout(50)
+    st = page.evaluate(FOLD_JS, sel)
+    ok(
+        "landing: clicking again runs the fold back before the element closes",
+        st["open"] and len(st["anims"]) == 1,
+        st,
+    )
+    page.wait_for_timeout(500)
+    ok(
+        "landing: … and it is closed once the transition ends",
+        not page.evaluate(FOLD_JS, sel)["open"],
+    )
+    sel2 = "#limits details:nth-of-type(2)"
+    page.locator(sel2 + " > summary").focus()
+    page.keyboard.press("Enter")
+    page.wait_for_timeout(450)
+    opened = page.evaluate(FOLD_JS, sel2)
+    page.keyboard.press("Enter")
+    page.wait_for_timeout(500)
+    closed = page.evaluate(FOLD_JS, sel2)
+    ok(
+        "landing: Enter on a focused question opens and closes the fold",
+        opened["open"] and abs(opened["rows"] - opened["content"]) < 2 and not closed["open"],
+        (opened, closed),
+    )
+    ctx.close()
+    ctx = browser.new_context(viewport={"width": 1440, "height": 900}, reduced_motion="reduce")
+    page = ctx.new_page()
+    page.goto(path.as_uri(), wait_until="load")
+    page.wait_for_timeout(300)
+    page.locator(sel + " > summary").click()
+    st = page.evaluate(FOLD_JS, sel)
+    ok(
+        "landing: under reduced motion the fold snaps open — no transition, full height at once",
+        st["open"] and not st["anims"] and abs(st["rows"] - st["content"]) < 2,
+        st,
+    )
+    page.locator(sel + " > summary").click()
+    st = page.evaluate(FOLD_JS, sel)
+    ok("landing: under reduced motion it snaps closed", not st["open"] and not st["anims"], st)
+    ctx.close()
+
+
 def check_widths(browser, path, name, out, is_deck):
     for width, height in ((375, 740), (768, 1024), (1440, 900)):
         ctx = browser.new_context(viewport={"width": width, "height": height})
@@ -193,7 +371,10 @@ def check_widths(browser, path, name, out, is_deck):
                 target = (path.parent / h.split("#")[0]).resolve()
                 target = target / "index.html" if target.is_dir() else target
                 ok(f"{name}: local link {h} exists", target.exists())
+        if width == 1440:
+            check_links(page, name)
         if not is_deck:
+            check_map_labels(page, f"{name}@{width}")
             if width == 375:
                 page.wait_for_timeout(2500)
                 h = page.evaluate("document.body.scrollHeight")
@@ -229,7 +410,7 @@ def check_widths(browser, path, name, out, is_deck):
                 r = page.evaluate(
                     """() => {
                   const vis = [...document.body.querySelectorAll('*')].filter(e => { const b = e.getBoundingClientRect();
-                    return b.top < 720 && b.bottom > 0 && b.width > 0 && e.children.length === 0 && !e.closest('script,style'); });
+                    return b.top < 720 && b.bottom > 0 && b.width > 0 && e.children.length === 0 && !e.closest('script,style,[aria-hidden="true"]'); });
                   const words = vis.map(e => (e.textContent||'').trim()).join(' ').split(/\\s+/).filter(Boolean).length;
                   return { words, h1: document.querySelectorAll('h1').length,
                     ctas: [...document.querySelectorAll('a.btn,button')].filter(e => e.getBoundingClientRect().top < 720).length,
@@ -284,6 +465,11 @@ def check_widths(browser, path, name, out, is_deck):
                 bad,
             )
             if width == 1440:
+                page.evaluate(
+                    "document.querySelectorAll('.slide').forEach((s, i) => s.classList.toggle('active', i === 6))"
+                )
+                page.wait_for_timeout(200)
+                check_map_labels(page, f"{name}@{width}")
                 page.keyboard.press("Home")
                 page.keyboard.press("Escape")
                 page.wait_for_timeout(100)
@@ -636,6 +822,7 @@ def main():
             prep="location.hash='#11'; document.querySelectorAll('.slide').forEach((s,i)=>s.classList.toggle('active', i===10))",
         )
         print("\n=== animation ===")
+        check_fold(browser, landing)
         check_landing_split_animation(browser, landing)
         check_deck_stage_animation(browser, deck)
         check_loop(browser, out)
