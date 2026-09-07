@@ -64,7 +64,10 @@ p{margin:0}
 .slide{position:absolute;inset:0;padding:96px 120px 120px;display:none;background:var(--bg)}
 .slide.active{display:block}
 @media (prefers-reduced-motion:no-preference){
-  .slide.active{animation:slidein .42s var(--ease)}
+  /* the slide-in is a navigation transition, not an entrance: the slide shown at load is
+     simply there. Fading it up from opacity 0 hid its first paint from the browser's
+     largest-contentful-paint tracking, so the cover's LCP became the webfont swap. */
+  body.navigated .slide.active{animation:slidein .42s var(--ease)}
   @keyframes slidein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 }
 .slide::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(1100px 600px at 82% -10%, rgba(255,176,32,.08), transparent 60%),radial-gradient(900px 520px at 6% 20%, rgba(76,154,255,.07), transparent 60%)}
@@ -976,8 +979,9 @@ a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2px solid 
     var x = (window.innerWidth - 1920 * s) / 2, y = (window.innerHeight - 1080 * s) / 2;
     stage.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + s + ')';
   }
-  function show(i){
+  function show(i, initial){
     cur = Math.max(0, Math.min(n - 1, i));
+    if (!initial) document.body.classList.add('navigated');
     slides.forEach(function(s, k){ s.classList.toggle('active', k === cur); });
     counter.textContent = pad(cur + 1) + ' / ' + pad(n);
     prog.style.width = ((cur + 1) / n * 100) + '%';
@@ -1018,7 +1022,7 @@ a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2px solid 
   var idleT; document.addEventListener('mousemove', function(){ document.body.classList.remove('idle'); clearTimeout(idleT); if (document.body.classList.contains('presenter')) idleT = setTimeout(function(){ document.body.classList.add('idle'); }, 2000); });
   window.addEventListener('resize', fit);
   buildOverview(); fit();
-  var h = parseInt((location.hash || '#1').slice(1), 10); show(isNaN(h) ? 0 : h - 1);
+  var h = parseInt((location.hash || '#1').slice(1), 10); show(isNaN(h) ? 0 : h - 1, true);
   setTimeout(function(){ hint.classList.add('gone'); }, 6000);
 })();
 </script>
