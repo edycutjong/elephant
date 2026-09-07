@@ -135,7 +135,12 @@ svg.split .inbar{fill:#0B0E14;font-size:15px;font-weight:600}
 .viz-legend{display:none;font-size:.85rem;color:var(--muted);line-height:1.7;margin-bottom:10px}
 .viz-legend b{font-weight:600}
 @media (max-width:640px){.viz-legend{display:block}svg.split text{display:none}svg.split .sum g{display:none}}
-.viz-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;font-family:var(--font-mono);font-size:.8rem;color:var(--muted)}
+.viz-key{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:14px;font-family:var(--font-mono);font-size:.78rem;color:var(--muted)}
+.viz-key span{display:inline-flex;align-items:center;gap:7px}
+.viz-key i{width:14px;height:10px;border-radius:2px;display:inline-block;background:var(--elephant)}
+.viz-key i.rest{opacity:.42}
+.viz-key i.buy{background:var(--herd)}
+.viz-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:10px;font-family:var(--font-mono);font-size:.8rem;color:var(--muted)}
 
 /* ── the number ──────────────────────────────────────────────────────────────── */
 .number-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:28px;align-items:start}
@@ -214,11 +219,13 @@ svg.quadrant .ptsub{fill:#8B98A9;font-size:12px}
 .tok .hd .chain{font-family:var(--font-mono);font-size:.75rem;color:var(--muted)}
 .tok .bars{display:grid;grid-template-columns:auto 1fr auto;gap:6px 12px;align-items:center;margin-top:10px;font-family:var(--font-mono);font-size:.8rem}
 .tok .bars .lab{color:var(--muted)}
-.tok .bars .bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden}
-.tok .bars .bar i{display:block;height:100%;border-radius:4px}
-.tok .bars .bar i.a{background:var(--elephant)}
-.tok .bars .bar i.b{background:var(--herd)}
-.tok .bars .bar i.g{background:var(--collapsed)}
+.tok .bars .bar{height:8px;border-radius:4px;overflow:hidden;position:relative;background:var(--border)}
+.tok .bars .bar::before{content:"";position:absolute;inset:0;opacity:.18}
+.tok .bars .bar.sell::before{background:var(--elephant)}
+.tok .bars .bar.buy::before{background:var(--herd)}
+.tok .bars .bar i{display:block;height:100%;border-radius:4px;position:relative}
+.tok .bars .bar.sell i{background:var(--elephant)}
+.tok .bars .bar.buy i{background:var(--herd)}
 .tok .quad-name{font-family:var(--font-mono);font-size:.75rem;color:var(--elephant);letter-spacing:.06em;text-transform:uppercase}
 .tok .note{color:var(--muted);font-size:.9rem;margin:8px 0 0}
 
@@ -319,6 +326,7 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
         <div><span class="blue mono">buy</span> {{ausd.buys}} swaps · {{ausd.buy_wallets}} wallets · largest {{ausd.buy_top_share}}</div>
       </div>
       {{split_svg}}
+      <div class="viz-key" aria-label="Colour key"><span><i></i><i class="buy"></i> the largest single wallet on that side</span><span><i class="rest"></i><i class="buy rest"></i> every other wallet on it — one colour per side</span></div>
       <div class="viz-foot">
         <span>{{ausd.symbol}} · {{ausd.platform}} · {{ausd.swaps}} swaps · {{ausd.pages}} pages · {{ausd.wall}} s</span>
         <span>captured {{ausd.captured_short}} · <a class="link-quiet" href="#run">reproduce ↓</a></span>
@@ -432,8 +440,8 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
         {{struct_b}}
         <div class="kv">
           <span>net flow</span><span class="flag">0.0%</span>
-          <span>top seller's share</span><span class="muted">0.1%</span>
-          <span>top buyer's share</span><span class="muted">0.1%</span>
+          <span>top seller's share</span><span class="amber" style="opacity:.6">0.1%</span>
+          <span>top buyer's share</span><span class="blue" style="opacity:.6">0.1%</span>
         </div>
       </div>
     </div>
@@ -476,8 +484,8 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
           <div class="hd"><h3>{{ausd.symbol}} <span class="chain">{{ausd.platform}}</span></h3><span class="chip flag">net {{ausd.net}}</span></div>
           <div class="quad-name">distribution to retail</div>
           <div class="bars">
-            <span class="lab">sell</span><span class="bar"><i class="a" style="width:{{ausd.sell_top_share}}"></i></span><span class="amber">{{ausd.sell_top_share}}</span>
-            <span class="lab">buy</span><span class="bar"><i class="b" style="width:{{ausd.buy_top_share}}"></i></span><span class="blue">{{ausd.buy_top_share}}</span>
+            <span class="lab">sell</span><span class="bar sell"><i style="width:{{ausd.sell_top_share}}"></i></span><span class="amber">{{ausd.sell_top_share}}</span>
+            <span class="lab">buy</span><span class="bar buy"><i style="width:{{ausd.buy_top_share}}"></i></span><span class="blue">{{ausd.buy_top_share}}</span>
           </div>
           <p class="note">One wallet sold {{ausd.sell_top_vol_m}} in {{ausd.sell_top_swaps}} swaps to {{ausd.buy_wallets}} distinct buyers.</p>
         </div>
@@ -485,8 +493,8 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
           <div class="hd"><h3>{{shfl.symbol}} <span class="chain">{{shfl.platform}}</span></h3><span class="chip flag">net {{shfl.net}}</span></div>
           <div class="quad-name">accumulation from a crowd</div>
           <div class="bars">
-            <span class="lab">sell</span><span class="bar"><i class="g" style="width:{{shfl.sell_top_share}}"></i></span><span class="muted">{{shfl.sell_top_share}}</span>
-            <span class="lab">buy</span><span class="bar"><i class="b" style="width:{{shfl.buy_top_share}}"></i></span><span class="blue">{{shfl.buy_top_share}}</span>
+            <span class="lab">sell</span><span class="bar sell"><i style="width:{{shfl.sell_top_share}}"></i></span><span class="muted">{{shfl.sell_top_share}}</span>
+            <span class="lab">buy</span><span class="bar buy"><i style="width:{{shfl.buy_top_share}}"></i></span><span class="blue">{{shfl.buy_top_share}}</span>
           </div>
           <p class="note">The mirror: one wallet took {{shfl.buy_top_share}} of the buy side in {{shfl.buy_top_swaps}} swaps, from {{shfl.sell_wallets}} distinct sellers.</p>
         </div>
@@ -494,8 +502,8 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
           <div class="hd"><h3>{{bingo.symbol}} <span class="chain">{{bingo.platform}}</span></h3><span class="chip flag">net {{bingo.net}}</span></div>
           <div class="quad-name">wash-shaped symmetry</div>
           <div class="bars">
-            <span class="lab">sell</span><span class="bar"><i class="a" style="width:{{bingo.sell_top_share}}"></i></span><span class="amber">{{bingo.sell_top_share}}</span>
-            <span class="lab">buy</span><span class="bar"><i class="b" style="width:{{bingo.buy_top_share}}"></i></span><span class="blue">{{bingo.buy_top_share}}</span>
+            <span class="lab">sell</span><span class="bar sell"><i style="width:{{bingo.sell_top_share}}"></i></span><span class="amber">{{bingo.sell_top_share}}</span>
+            <span class="lab">buy</span><span class="bar buy"><i style="width:{{bingo.buy_top_share}}"></i></span><span class="blue">{{bingo.buy_top_share}}</span>
           </div>
           <p class="note">The same wallet, <span class="mono">{{bingo.wallet_short}}</span>, is the top maker on both sides — {{bingo.swaps}} swaps of tiny size trading with itself.</p>
         </div>
@@ -503,8 +511,8 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
           <div class="hd"><h3>{{churn.symbol}} <span class="chain">{{churn.platform}}</span></h3><span class="chip flag">net {{churn.net}}</span></div>
           <div class="quad-name">churn</div>
           <div class="bars">
-            <span class="lab">sell</span><span class="bar"><i class="g" style="width:{{churn.sell_top_share}}"></i></span><span class="muted">{{churn.sell_top_share}}</span>
-            <span class="lab">buy</span><span class="bar"><i class="g" style="width:{{churn.buy_top_share}}"></i></span><span class="muted">{{churn.buy_top_share}}</span>
+            <span class="lab">sell</span><span class="bar sell"><i style="width:{{churn.sell_top_share}}"></i></span><span class="muted">{{churn.sell_top_share}}</span>
+            <span class="lab">buy</span><span class="bar buy"><i style="width:{{churn.buy_top_share}}"></i></span><span class="muted">{{churn.buy_top_share}}</span>
           </div>
           <p class="note">Crowds on both sides: {{churn.sell_wallets}} sellers, {{churn.buy_wallets}} buyers, nobody above a tenth. The only one of the four where "balanced" was true.</p>
         </div>

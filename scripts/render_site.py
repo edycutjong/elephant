@@ -75,77 +75,76 @@ def fmt_ts_ms(ms, seconds=True):
 # ── SVG builders ─────────────────────────────────────────────────────────────
 
 
-def split_svg(r, side_concentrated="sell", width=1200, deck=False):
-    """The hero: one flat grey bar (the sum) that splits into two attributed rows."""
+AMBER, BLUE, GREY, RED, INK = "#FFB020", "#4C9AFF", "#5E6C80", "#FF5C5C", "#0B0E14"
+REST_OPACITY = "0.42"  # every wallet on a side except the one the label names
+
+
+def segments(shares, x0, y, width, row_h, hue):
+    """One rect per wallet, widest first. The first wallet is solid; the rest are the same
+    hue at REST_OPACITY, so a side owns exactly one colour and blue can never mean 'buy'
+    inside the sell row."""
+    out = []
+    x = x0
+    for i, s in enumerate(shares):
+        w = s * width
+        if w < 0.6:
+            # sub-pixel wallets still exist: draw them as a hairline so the count is honest
+            w = 0.6
+        gap = 1.5 if w > 3 else 0
+        rest = "" if i == 0 else f' fill-opacity="{REST_OPACITY}"'
+        out.append(
+            f'<rect class="seg{"" if i == 0 else " rest"}" x="{x:.2f}" y="{y}" '
+            f'width="{max(w - gap, 0.5):.2f}" height="{row_h}" rx="{3 if w > 8 else 0}" '
+            f'fill="{hue}"{rest}/>'
+        )
+        x += w
+    return "\n".join(out)
+
+
+def split_aria(r):
+    nf = signed_pct(r["net_flow_pct"])
+    return (
+        f"{r['symbol']}: net flow reads {nf}. Split by maker, one wallet is "
+        f"{pct(r['sell_top_share'])} of the sell side while the buy side is {r['buy_wallets']} "
+        f"wallets, the largest {pct(r['buy_top_share'])}."
+    )
+
+
+def split_svg(r, width=1200):
+    """The landing hero: one flat grey bar (the sum) and, under it, both sides attributed to
+    the wallets that made them. Each row is the full width: a share of its own side."""
     W = width
-    pad = 0
-    bar_h = 34 if deck else 26
-    row_h = 68 if deck else 44
-    y_sum = 44 if deck else 34
-    y_sell = 210 if deck else 170
-    y_buy = 360 if deck else 290
-    H = 460 if deck else 360
-    cls = "split deck" if deck else "split"
-
-    def segments(shares, y, elephant_first, colour_rest):
-        out = []
-        x = pad
-        usable = W - pad * 2
-        for i, s in enumerate(shares):
-            w = s * usable
-            if w < 0.6:
-                # sub-pixel wallets still exist: draw them as a hairline so the count is honest
-                w = 0.6
-            gap = 1.5 if w > 3 else 0
-            fill = "#FFB020" if (i == 0 and elephant_first) else colour_rest
-            out.append(
-                f'<rect class="seg" x="{x:.2f}" y="{y}" width="{max(w - gap, 0.5):.2f}" '
-                f'height="{row_h}" rx="{3 if w > 8 else 0}" fill="{fill}"/>'
-            )
-            x += w
-        return "\n".join(out)
-
-    sell = r["sell_maker_shares"]
-    buy = r["buy_maker_shares"]
-    sell_top = r["sell_top_share"]
-    buy_top = r["buy_top_share"]
-    sell_elephant = side_concentrated == "sell"
-    buy_elephant = side_concentrated == "buy"
-
+    bar_h, row_h = 26, 44
+    y_sum, y_sell, y_buy, H = 34, 170, 290, 360
+    nf = signed_pct(r["net_flow_pct"])
     sell_label = f"sell · {r['sells']} swaps · {r['sell_wallets']} wallets"
     buy_label = f"buy · {r['buys']} swaps · {r['buy_wallets']} wallets"
     top_label_sell = (
-        f"one wallet · {pct(sell_top)} · {money(r['sell_top_vol'])} in {r['sell_top_swaps']} swaps"
+        f"one wallet · {pct(r['sell_top_share'])} · {money(r['sell_top_vol'])} "
+        f"in {r['sell_top_swaps']} swaps"
     )
-    top_label_buy = f"largest wallet · {pct(buy_top)}"
-
-    nf = signed_pct(r["net_flow_pct"])
-    aria = (
-        f"{r['symbol']}: net flow reads {nf}. Split by maker, one wallet is {pct(sell_top)} of "
-        f"the sell side while the buy side is {r['buy_wallets']} wallets, the largest "
-        f"{pct(buy_top)}."
-    )
-    pill_w = 300 if deck else 232
-    pill_h = bar_h + 8
-    pill_ty = pill_h / 2 + (7 if deck else 5)
-    return f"""<svg class="{cls}" viewBox="0 0 {W} {H}" role="img" aria-label="{aria}" {SVG_NS}>
+    top_label_buy = f"largest wallet · {pct(r['buy_top_share'])}"
+    pill_w, pill_h = 232, bar_h + 8
+    return f"""<svg class="split" viewBox="0 0 {W} {H}" role="img" aria-label="{split_aria(r)}" \
+{SVG_NS}>
   <g class="sum">
     <text x="0" y="{y_sum - 14}" class="lbl">what every dashboard prints</text>
-    <rect x="0" y="{y_sum}" width="{W}" height="{bar_h}" rx="13" fill="#5E6C80"/>
+    <rect x="0" y="{y_sum}" width="{W}" height="{bar_h}" rx="13" fill="{GREY}"/>
     <g transform="translate({W - pill_w},{y_sum - 4})">
-      <rect width="{pill_w}" height="{pill_h}" rx="{pill_h / 2}" fill="#0B0E14" \
-stroke="#FF5C5C" stroke-width="1.5"/>
-      <text x="{pill_w // 2}" y="{pill_ty}" class="flag" text-anchor="middle">net flow {nf}</text>
+      <rect width="{pill_w}" height="{pill_h}" rx="{pill_h / 2}" fill="{INK}" \
+stroke="{RED}" stroke-width="1.5"/>
+      <text x="{pill_w // 2}" y="{pill_h / 2 + 5}" class="flag" text-anchor="middle">\
+net flow {nf}</text>
     </g>
   </g>
   <g class="row row-sell">
     <text x="0" y="{y_sell - 12}" class="lbl">{sell_label}</text>
-    {segments(sell, y_sell, sell_elephant, "#4C9AFF")}
+    {segments(r["sell_maker_shares"], 0, y_sell, W, row_h, AMBER)}
     <text x="14" y="{y_sell + row_h / 2 + 5}" class="inbar">{top_label_sell}</text>
   </g>
   <g class="row row-buy">
     <text x="0" y="{y_buy - 12}" class="lbl">{buy_label}</text>
-    {segments(buy, y_buy, buy_elephant, "#4C9AFF")}
+    {segments(r["buy_maker_shares"], 0, y_buy, W, row_h, BLUE)}
     <text x="0" y="{y_buy + row_h + 22}" class="lbl">{top_label_buy}</text>
   </g>
 </svg>"""
@@ -243,14 +242,14 @@ text-anchor="middle">top maker's share of the BUY side →</text>
 def struct_svg(kind):
     """Structure A (one desk vs a crowd) or B (crowd vs crowd) — shared by both surfaces."""
 
-    def grid(x0, fill):
+    def grid(x0, hue):
         out = []
         for row in range(6):
             for col in range(18):
                 out.append(
                     f'<rect x="{x0 + col * 14}" y="{16 + row * 14}" width="10" height="10" rx="2"/>'
                 )
-        return f'<g fill="{fill}">' + "".join(out) + "</g>"
+        return f'<g fill="{hue}" fill-opacity="{REST_OPACITY}">' + "".join(out) + "</g>"
 
     def caption(x, text):
         return (
@@ -267,12 +266,12 @@ def struct_svg(kind):
         label = "One large seller block against many small buyer blocks"
         left_cap = ""
     else:
-        left = grid(0, "#5E6C80")
+        left = grid(0, AMBER)
         label = "Many small seller blocks against many small buyer blocks"
         left_cap = caption(125, "sell · 1,000 wallets · $1,000 each")
     return (
         f'<svg viewBox="0 0 520 120" role="img" aria-label="{label}" {SVG_NS}>'
-        f"{left}{grid(268, '#4C9AFF')}{left_cap}"
+        f"{left}{grid(268, BLUE)}{left_cap}"
         f"{caption(392, 'buy · 1,000 wallets · $1,000 each')}</svg>"
     )
 
@@ -461,7 +460,7 @@ def main():
     points = [
         point(A, "sell", lx=-22, ly=-26, anchor="end"),
         point(S, "buy", lx=22, ly=5),
-        point(Bg, "both", lx=-26, ly=52, anchor="end"),
+        point(Bg, "both", lx=-26, ly=66, anchor="end"),
         point(C, "none", lx=22, ly=5),
     ]
 
@@ -496,8 +495,8 @@ def main():
             "site": SITE_URL,
             "event": EVENT,
             "version": VERSION,
-            "split_svg": split_svg(A, "sell"),
-            "split_svg_deck": split_svg(A, "sell", width=1600, deck=True),
+            "split_svg": split_svg(A),
+            "split_svg_deck": split_svg(A),
             "ausd.captured_date": ausd["captured_utc"][:10],
             "quadrant_svg": quadrant_svg(points),
             "json_panel": json_panel(A, "sell"),
