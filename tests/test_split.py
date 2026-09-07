@@ -41,6 +41,44 @@ def test_split_counts_distinct_wallets_not_trades():
     assert r["buy_wallets"] == 1
 
 
+def test_top_maker_share_attributes_volume_per_wallet():
+    """The headline: how much of one side is ONE wallet. 90 of the 100 sell dollars
+    below belong to `desk`, across two swaps, against three retail sellers."""
+    swaps = [
+        _swap("sell", 60, "desk"),
+        _swap("sell", 30, "desk"),
+        _swap("sell", 5, "r1"),
+        _swap("sell", 3, "r2"),
+        _swap("sell", 2, "r3"),
+        _swap("buy", 50, "x"),
+        _swap("buy", 50, "y"),
+    ]
+    r = split(swaps)
+    assert r["sell_top_maker"] == "desk"
+    assert r["sell_top_share"] == pytest.approx(0.90)
+    assert r["sell_top_swaps"] == 2
+    assert r["sell_top_vol"] == 90.0
+    assert r["sell_wallets"] == 4
+    assert r["buy_top_share"] == pytest.approx(0.50)
+    assert r["top_share"] == pytest.approx(0.90)
+    assert r["concentrated_side"] == "sell"
+
+
+def test_maker_share_separates_what_ticket_ratio_cannot_at_flat_flow():
+    """At flat net flow the ticket ratio collapses to the count ratio. One desk selling
+    $1M in ten $100k clips into 1,000 $1k buyers and 1,000 matched $1k sellers/buyers
+    both read net flow 0 — and here the desk's clips are deliberately no larger than a
+    crowd's, so the ticket ratio is ~1 in BOTH cases. Maker share still tells them apart."""
+    retail_buys = [_swap("buy", 1000, f"b{i}") for i in range(1000)]
+    desk = [_swap("sell", 1000, "desk") for _ in range(1000)]
+    crowd = [_swap("sell", 1000, f"s{i}") for i in range(1000)]
+    one_seller, matched = split(desk + retail_buys), split(crowd + retail_buys)
+    assert one_seller["ticket_ratio"] == pytest.approx(1.0)
+    assert matched["ticket_ratio"] == pytest.approx(1.0)  # the ticket ratio cannot tell
+    assert one_seller["sell_top_share"] == pytest.approx(1.0)  # the maker share can
+    assert matched["sell_top_share"] == pytest.approx(0.001)
+
+
 def test_net_flow_is_degenerate_where_the_split_is_not():
     """The thesis, as a test: two opposite structures, identical net flow."""
     retail = [_swap("buy", 1000, f"r{i}") for i in range(1000)]

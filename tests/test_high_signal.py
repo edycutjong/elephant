@@ -68,6 +68,66 @@ def test_four_swap_side_is_not_reported_as_an_average_ticket():
     assert "thin side" in r["confidence"]
 
 
+def test_cursor_is_read_from_the_envelope_not_from_the_last_swap(monkeypatch):
+    """Sweep 2026-09-07: every number in the repo had come from a single 100-swap window.
+
+    The next-page cursor is `data.lastId` on the RESPONSE ENVELOPE. The first paginator
+    read `batch[-1]["txId"]` — a per-swap index — so the cursor never advanced and page 2
+    silently re-fetched page 1. Reading the envelope reached 864 swaps over 10 pages on
+    one token. The second call must carry the envelope's cursor, verbatim.
+    """
+    calls = []
+
+    def fake_get(path, **params):
+        calls.append(params)
+        n = len(calls)
+        return {
+            "data": {
+                "lastId": f"cursor-{n}",
+                "swaps": [
+                    {"tx": f"0x{n}", "lgid": str(i), "txId": "7", "tp": "buy", "v": "1", "ma": "a"}
+                    for i in range(3)
+                ],
+            }
+        }
+
+    monkeypatch.setattr(split_tape, "get", fake_get)
+    monkeypatch.setattr(split_tape.time, "sleep", lambda s: None)
+    swaps, meta = pull_swaps("0xdead", pages=3)
+    assert len(swaps) == 9, "three pages of three distinct swaps each"
+    assert meta["pages"] == 3 and not meta["stalled"]
+    assert "lastId" not in calls[0]
+    assert calls[1]["lastId"] == "cursor-1", "page 2 must send the ENVELOPE cursor"
+    assert calls[2]["lastId"] == "cursor-2"
+
+
+def test_swaps_are_keyed_by_tx_and_log_index_together(monkeypatch):
+    """Live page 2026-09-07: 100 swaps carried 89 distinct `tx` and 91 distinct `lgid`.
+
+    A multi-hop route emits several swaps under one tx hash; log ids repeat across
+    transactions. De-duplicating on either field alone throws away real swaps. The
+    key is the pair — and the same (tx, lgid) seen twice across pages counts once.
+    """
+    pages = [
+        [
+            {"tx": "0xA", "lgid": "1", "tp": "buy", "v": "1", "ma": "a"},
+            {"tx": "0xA", "lgid": "2", "tp": "buy", "v": "1", "ma": "a"},  # same tx, hop 2
+            {"tx": "0xB", "lgid": "1", "tp": "sell", "v": "1", "ma": "b"},  # same lgid, other tx
+        ],
+        [
+            {"tx": "0xB", "lgid": "1", "tp": "sell", "v": "1", "ma": "b"},  # overlap: drop
+            {"tx": "0xC", "lgid": "1", "tp": "sell", "v": "1", "ma": "c"},
+        ],
+    ]
+    it = iter(pages)
+    monkeypatch.setattr(
+        split_tape, "get", lambda path, **q: {"data": {"lastId": "x", "swaps": next(it)}}
+    )
+    monkeypatch.setattr(split_tape.time, "sleep", lambda s: None)
+    swaps, _ = pull_swaps("0xdead", pages=2)
+    assert len(swaps) == 4
+
+
 def test_rate_limited_fetch_is_not_reported_as_an_empty_tape(monkeypatch):
     """Live run 2026-09-07: the keyless surface returns HTTP 429 under repeated calls.
 
@@ -150,7 +210,7 @@ _side = st.lists(st.tuples(_usd, st.integers(min_value=0, max_value=40)), min_si
 def test_split_invariants_hold_over_the_whole_input_space(buys, sells):
     """The core decision function, verified across {PROPERTY_CASES} generated tapes.
 
-    Five invariants that must hold for ANY tape, not just the ones we thought to write down:
+    Six invariants that must hold for ANY tape, not just the ones we thought to write down:
 
     1. The ratio is never below 1 — it is defined as max(x, 1/x), so a "0.4x asymmetry"
        is impossible by construction.
@@ -182,6 +242,17 @@ def test_split_invariants_hold_over_the_whole_input_space(buys, sells):
     if r["confidence"] == "ok":
         assert min(r["buys"], r["sells"]) >= MIN_SIDE_SWAPS
         assert min(r["avg_buy"], r["avg_sell"]) >= DUST_USD
+
+    # 6. Maker concentration is a share: inside [0, 1], attributed to a wallet that is on
+    #    that side, with at most as many swaps as the side has, and never more volume
+    #    than the side. The headline number cannot escape its own denominator.
+    for side, n in (("buy", r["buys"]), ("sell", r["sells"])):
+        assert 0.0 <= r[f"{side}_top_share"] <= 1.0 + 1e-9
+        assert 1 <= r[f"{side}_top_swaps"] <= n
+        assert r[f"{side}_top_vol"] <= r[f"{side}_vol"] * (1 + 1e-9)
+        if r[f"{side}_wallets"] == 1:
+            assert r[f"{side}_top_share"] == pytest.approx(1.0) or r[f"{side}_vol"] == 0
+    assert r["top_share"] == max(r["buy_top_share"], r["sell_top_share"])
 
 
 # ─────────────────────────────────────────────────────────────────────────────
