@@ -279,6 +279,66 @@ footer h4{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.08em;tex
 footer ul{list-style:none;margin:0;padding:0}
 footer li{margin:6px 0}
 footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:var(--font-mono);font-size:.78rem}
+
+/* ── code panels: open on wide screens, one tap away on narrow ones ─────────── */
+details.code-more{margin-top:0;background:transparent;border:0}
+details.code-more>summary{padding:0 0 10px;font-family:var(--font-mono);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500;border-radius:0}
+details.code-more>summary:hover{background:transparent;color:var(--elephant)}
+.rail-hint{display:none;font-family:var(--font-mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+
+/* ── narrow widths: condense, do not just stack ─────────────────────────────── */
+@media (max-width:640px){
+  body{font-size:16px}
+  section{padding:36px 0;scroll-margin-top:70px}
+  .lede{font-size:1.02rem}
+  h2{font-size:1.55rem}
+  .hero{padding:32px 0 20px}
+  .hero .lede{margin:14px 0 20px}
+  .hero-viz{margin-top:24px;padding:14px}
+  .viz-key{gap:10px 16px;font-size:.72rem}
+  .card{padding:18px}
+  .stat-table th,.stat-table td{padding:10px 6px}
+  .stat-big{font-size:1.9rem}
+  .netline{padding:12px 6px}
+  pre.json{font-size:.72rem;max-height:260px;padding:14px}
+  .supporting{display:none}
+  details summary{padding:12px 14px;font-size:.95rem}
+  details .body{padding:0 14px 14px}
+  /* rails: one row, snap-scrolled, the next card peeking so the swipe is discoverable */
+  .rail{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:84%;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 10px;margin-top:22px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+  .rail>*{scroll-snap-align:start;min-width:0}
+  .rail .card{margin:0}
+  .rail-hint{display:block}
+  .two{gap:14px}
+  .struct .kv{font-size:.82rem}
+  .aside{margin-top:18px}
+  /* the api table becomes one block per endpoint — its three columns cannot share 375px */
+  table.api,table.api thead,table.api tbody,table.api tr,table.api td{display:block}
+  table.api thead{display:none}
+  table.api tr{padding:12px 0;border-bottom:1px solid var(--border)}
+  table.api tr:last-child{border-bottom:0}
+  table.api td{padding:2px 0;border:0}
+  table.api code{white-space:normal;word-break:break-all}
+  table.api td:last-child{font-family:var(--font-mono);font-size:.8rem;color:var(--muted)}
+  table.api td:last-child::before{content:"key · "}
+  .finding .v{font-size:1.7rem}
+  .term pre{font-size:.76rem;padding:14px}
+  .proof{grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+  .proof a{padding:10px 12px}
+  .proof .f{font-size:.72rem}
+  .final .btn-primary{padding:14px 22px;font-size:1rem}
+  footer{padding:32px 0 40px;font-size:.85rem}
+  footer .cols{grid-template-columns:1fr 1fr;gap:18px}
+  footer .cols>div:first-child{grid-column:1/-1}
+  /* the quadrant is drawn in 720 user units; at 375px its type needs to be set for the size it is */
+  svg.quadrant{padding:4px}
+  svg.quadrant .tick{font-size:18px}
+  svg.quadrant .axis{font-size:19px}
+  svg.quadrant .quad{font-size:20px}
+  svg.quadrant .quad.sub{font-size:16px}
+  svg.quadrant .ptlbl{font-size:22px}
+  svg.quadrant .ptsub{font-size:17px}
+}
 </style>
 </head>
 <body>
@@ -773,7 +833,7 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
           </tbody>
         </table>
         </div>
-        <p class="muted" style="margin:18px 0 0;font-size:.95rem">Top seller <span class="mono" style="font-size:.8rem;word-break:break-all">0x9f681e397f51137215b8240b8bf4e523d898661b</span>. Supporting columns: 467 buys averaging $91,700, 333 sells averaging $123,273, ticket ratio 1.3× — which is exactly why ticket size was never the story.</p>
+        <p class="muted supporting" style="margin:18px 0 0;font-size:.95rem">Top seller <span class="mono" style="font-size:.8rem;word-break:break-all">0x9f681e397f51137215b8240b8bf4e523d898661b</span>. Supporting columns: 467 buys averaging $91,700, 333 sells averaging $123,273, ticket ratio 1.3× — which is exactly why ticket size was never the story.</p>
       </div>
 
       <div class="reveal d1">
@@ -987,14 +1047,17 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
       </div>
     </div>
 
-    <div class="steps">
+    <div class="steps rail">
       <div class="card step reveal"><div class="n">01 · PULL</div><h3>The swaps, not the aggregate</h3><p class="muted" style="margin:10px 0 0;font-size:.95rem"><code>/v1/dex/tokens/transactions</code>, keyless. Per swap: the side <code>tp</code>, the USD value <code>v</code>, the maker address <code>ma</code>. Eight pages, cursor on the envelope.</p></div>
       <div class="card step reveal d1"><div class="n">02 · SPLIT</div><h3>Partition on the side</h3><p class="muted" style="margin:10px 0 0;font-size:.95rem">Buys in one bucket, sells in the other. Net flow is computed too — only so it can be shown losing.</p></div>
       <div class="card step reveal d2"><div class="n">03 · ATTRIBUTE</div><h3>Sum per wallet, rank, take the top</h3><p class="muted" style="margin:10px 0 0;font-size:.95rem">Per side, <code>Σ v</code> grouped by <code>ma</code>. The largest wallet's share of the side is the number. No model, no threshold, no label.</p></div>
     </div>
+    <div class="rail-hint" aria-hidden="true">swipe → three steps</div>
 
     <div class="two" style="margin-top:28px;align-items:start">
-      <pre class="code reveal" aria-label="The arithmetic"><span class="c"># the whole product — scripts/split_tape.py, split()</span>
+      <details class="code-more reveal" open>
+      <summary>the arithmetic — split_tape.py, split()</summary>
+      <pre class="code" aria-label="The arithmetic"><span class="c"># the whole product — scripts/split_tape.py, split()</span>
 <span class="k">buys</span>  = [s <span class="c">for</span> s <span class="c">in</span> swaps <span class="c">if</span> s.tp == <span class="s">"buy"</span>]
 <span class="k">sells</span> = [s <span class="c">for</span> s <span class="c">in</span> swaps <span class="c">if</span> s.tp == <span class="s">"sell"</span>]
 
@@ -1003,10 +1066,14 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
 
 <span class="k">net_flow</span> = (Σ buys.v − Σ sells.v) / (Σ buys.v + Σ sells.v)
 <span class="c"># shown beside the split so the disagreement is visible in one row</span></pre>
-      <div class="aside reveal d1">
+      </details>
+      <details class="code-more reveal d1" open>
+      <summary>why not ticket size?</summary>
+      <div class="aside" style="margin-top:0">
         <p><b>Why not ticket size?</b> The first version headlined average buy ticket ÷ average sell ticket. At flat net flow buy volume ≈ sell volume, so that ratio collapses to <span class="mono">n_sells / n_buys</span> — the count ratio, measured twice. Across 54 flat tokens the two agreed to within a median 5.8%, and the best real value was 5.2×.</p>
         <p style="margin:0"><b>Maker share is a second, independent quantity</b>, and it is the one the project is named for. Ticket size stays as a supporting column.</p>
       </div>
+      </details>
     </div>
   </div>
 </section>
@@ -1060,7 +1127,7 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
   <text x="387.0" y="544" class="axis" text-anchor="middle">top maker's share of the SELL side →</text>
   <text transform="translate(18,256.0) rotate(-90)" class="axis" text-anchor="middle">top maker's share of the BUY side →</text>
 </svg></div>
-      <div class="tok reveal d1">
+      <div class="tok rail reveal d1">
         <div class="card" data-token="AUSD">
           <div class="hd"><h3>AUSD <span class="chain">ethereum</span></h3><span class="chip flag">net +2.1%</span></div>
           <div class="quad-name">distribution to retail</div>
@@ -1099,6 +1166,7 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
         </div>
       </div>
     </div>
+    <div class="rail-hint" aria-hidden="true">swipe → four tokens</div>
   </div>
 </section>
 
@@ -1123,7 +1191,7 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
       </div>
     </div>
 
-    <div class="findings">
+    <div class="findings rail">
       <div class="card finding reveal">
         <div class="k">finding 1 · pagination</div>
         <div class="v amber">100 → 800</div>
@@ -1140,12 +1208,16 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
         <p><span class="mono">24h_buy_volume + 24h_sell_volume</span> reconciled with <span class="mono">volume_24h</span> on six of 200 sampled pairs; 55 were off by more than 100×. The counts are fine and the volumes are not, so the project computes from individual swaps instead.</p>
       </div>
     </div>
+    <div class="rail-hint" aria-hidden="true">swipe → three findings</div>
 
-    <pre class="code reveal" style="margin-top:20px" aria-label="The one-line fix"><span class="c"># build/scripts/split_tape.py · pull_swaps() — the fix that made depth real</span>
+    <details class="code-more reveal" open style="margin-top:20px">
+    <summary>the fix — split_tape.py, pull_swaps()</summary>
+    <pre class="code" aria-label="The one-line fix"><span class="c"># scripts/split_tape.py · pull_swaps() — the fix that made depth real</span>
 <span class="del">-        cursor = batch[-1].get("txId") or batch[-1].get("lgid")   # a per-swap index: never advances</span>
 <span class="add">+        cursor = data.get("lastId")                                 # the envelope's cursor: advances</span>
 <span class="del">-        fresh = [s for s in batch if s.get("tx") not in seen]        # a routed trade = several swaps, one tx</span>
 <span class="add">+        key = (s.get("tx"), s.get("lgid"))                          # the pair is the identity</span></pre>
+    </details>
   </div>
 </section>
 
@@ -1277,6 +1349,11 @@ footer .bottom{margin-top:32px;padding-top:18px;border-top:1px solid var(--borde
 <script>
 (function(){
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // narrow screens: the code listings start collapsed — the argument stays, the listing is one tap away
+  if (window.matchMedia && window.matchMedia('(max-width:640px)').matches) {
+    document.querySelectorAll('details.code-more').forEach(function(d){ d.open = false; });
+  }
 
   // sticky header state
   var top = document.getElementById('top');
