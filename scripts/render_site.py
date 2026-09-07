@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Render site/index.html, site/pitch/index.html and JUDGE.md from the committed receipts.
 
-    python3 scripts/render_site.py            # churn token defaults to gme
-    python3 scripts/render_site.py gme
+    python3 scripts/render_site.py            # write site/ and JUDGE.md (churn token: gme)
+    python3 scripts/render_site.py --check    # exit 1 if what is on disk is not this render
 
 Every number on either surface comes from docs/proof/*.json, which are real keyless runs of
 scripts/split_tape.py. The templates in scripts/site_templates/ use {{token}} slots and the
@@ -146,6 +146,55 @@ net flow {nf}</text>
     <text x="0" y="{y_buy - 12}" class="lbl">{buy_label}</text>
     {segments(r["buy_maker_shares"], 0, y_buy, W, row_h, BLUE)}
     <text x="0" y="{y_buy + row_h + 22}" class="lbl">{top_label_buy}</text>
+  </g>
+</svg>"""
+
+
+def split_stage_svg(r):
+    """The deck's peak, on a 1680x640 stage: the sum bar is drawn to volume, forks into its
+    sell and buy halves — nearly equal, which is what "balanced" looks like — and each half
+    then resolves into the wallets that made it. Geometry only ever moves bar -> split; the
+    static state (reduced motion, print) is the final frame."""
+    W, H = 1680, 640
+    bar_x, bar_w, bar_y, bar_h = 320, 1040, 56, 36
+    row_y, row_h, row_gap = 230, 110, 120
+    sell_v, buy_v = r["sell_vol"], r["buy_vol"]
+    sell_frac = sell_v / (sell_v + buy_v)
+    half_sell_w = bar_w * sell_frac
+    half_buy_w = bar_w - half_sell_w
+    scale_x = (W - row_gap) / bar_w
+    scale_y = row_h / bar_h
+    sell_w = half_sell_w * scale_x
+    buy_x = W - half_buy_w * scale_x
+    nf = signed_pct(r["net_flow_pct"])
+    pill_w, pill_h = 300, bar_h + 8
+
+    def half(cls, x, w, tx):
+        return (
+            f'<rect class="half {cls}" x="{x:.2f}" y="{bar_y}" width="{w:.2f}" height="{bar_h}" '
+            f'fill="{GREY}" style="--tx:{tx:.2f}px;--ty:{row_y - bar_y}px;'
+            f'--sx:{scale_x:.4f};--sy:{scale_y:.4f}"/>'
+        )
+
+    aria = split_aria(r)
+    return f"""<svg class="stage-svg" viewBox="0 0 {W} {H}" role="img" aria-label="{aria}" {SVG_NS}>
+  <text x="{bar_x}" y="{bar_y - 14}" class="lbl">what every dashboard prints</text>
+  <rect class="ghost" x="{bar_x}" y="{bar_y}" width="{bar_w}" height="{bar_h}" rx="18" \
+fill="none" stroke="{GREY}" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <rect class="bar" x="{bar_x}" y="{bar_y}" width="{bar_w}" height="{bar_h}" rx="18" fill="{GREY}"/>
+  {half("half-sell", bar_x, half_sell_w, -bar_x)}
+  {half("half-buy", bar_x + half_sell_w, half_buy_w, buy_x - (bar_x + half_sell_w))}
+  <g class="wallets wallets-sell">
+    {segments(r["sell_maker_shares"], 0, row_y, sell_w, row_h, AMBER)}
+  </g>
+  <g class="wallets wallets-buy">
+    {segments(r["buy_maker_shares"], buy_x, row_y, W - buy_x, row_h, BLUE)}
+  </g>
+  <g class="pill" transform="translate({bar_x + bar_w - pill_w},{bar_y - 4})">
+    <rect width="{pill_w}" height="{pill_h}" rx="{pill_h / 2}" fill="{INK}" stroke="{RED}" \
+stroke-width="1.5"/>
+    <text x="{pill_w // 2}" y="{pill_h / 2 + 7}" class="flag" text-anchor="middle">\
+net flow {nf}</text>
   </g>
 </svg>"""
 
@@ -435,7 +484,9 @@ def token_ctx(p, d, r):
 
 
 def main():
-    churn = sys.argv[1] if len(sys.argv) > 1 else "gme"
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    check = "--check" in sys.argv
+    churn = args[0] if args else "gme"
     ausd, shfl, bingo, churn_d = load("ausd"), load("shfl"), load("bingo"), load(churn)
     A = row_of(ausd)
     S = row_of(shfl)
@@ -496,7 +547,10 @@ def main():
             "event": EVENT,
             "version": VERSION,
             "split_svg": split_svg(A),
-            "split_svg_deck": split_svg(A),
+            "split_stage_svg": split_stage_svg(A),
+            "ausd.total_vol": money(A["sell_vol"] + A["buy_vol"]),
+            "ausd.sell_frac": pct(A["sell_vol"] / (A["sell_vol"] + A["buy_vol"])),
+            "ausd.buy_frac": pct(A["buy_vol"] / (A["sell_vol"] + A["buy_vol"])),
             "ausd.captured_date": ausd["captured_utc"][:10],
             "quadrant_svg": quadrant_svg(points),
             "json_panel": json_panel(A, "sell"),
@@ -534,18 +588,28 @@ def main():
         }
     )
 
-    SITE.mkdir(parents=True, exist_ok=True)
-    (SITE / "pitch").mkdir(exist_ok=True)
-    landing = render((TEMPLATES / "landing.html").read_text(), ctx)
-    (SITE / "index.html").write_text(landing)
-    deck = render((TEMPLATES / "deck.html").read_text(), ctx)
-    (SITE / "pitch" / "index.html").write_text(deck)
     # JUDGE.md carries the same claim, number and command as the landing page. Rendering it
     # from the same receipts is what stops the judge-facing document freezing on day one
     # while the product moves on.
-    judge = render((TEMPLATES / "JUDGE.md").read_text(), ctx)
-    (BUILD / "JUDGE.md").write_text(judge)
-    print(f"rendered {len(landing)}B landing, {len(deck)}B deck, {len(judge)}B JUDGE.md")
+    outputs = {
+        SITE / "index.html": render((TEMPLATES / "landing.html").read_text(), ctx),
+        SITE / "pitch" / "index.html": render((TEMPLATES / "deck.html").read_text(), ctx),
+        BUILD / "JUDGE.md": render((TEMPLATES / "JUDGE.md").read_text(), ctx),
+    }
+    if check:
+        stale = [p for p, out in outputs.items() if not p.exists() or p.read_text() != out]
+        for p in stale:
+            print(f"DRIFT: {p.relative_to(BUILD)} is not what the receipts render")
+        if stale:
+            sys.exit(1)
+        print("in sync: site/index.html, site/pitch/index.html, JUDGE.md match docs/proof/*.json")
+        return
+    (SITE / "pitch").mkdir(parents=True, exist_ok=True)
+    for path, out in outputs.items():
+        path.write_text(out)
+    print(
+        "rendered " + ", ".join(f"{p.relative_to(BUILD)} ({len(o)}B)" for p, o in outputs.items())
+    )
 
 
 if __name__ == "__main__":

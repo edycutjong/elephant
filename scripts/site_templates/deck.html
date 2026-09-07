@@ -99,17 +99,6 @@ pre mark{background:rgba(255,176,32,.16);color:#FFD27A;border-radius:4px;padding
 .runs .term pre{font-size:23px;line-height:1.6;padding:32px 36px}
 .term .p{color:#7E8CA0}.term .cmd{color:#E6EDF3}.term .hi{color:#FFD27A}.term .ok{color:#8CE99A}.term .dim{color:#7E8CA0}
 
-/* svg shared with the landing page */
-svg.split{width:100%;height:auto;font-family:var(--font-mono)}
-svg.split .lbl{fill:#8B98A9;font-size:17px}
-svg.split .flag{fill:#FF5C5C;font-size:16px;font-weight:600}
-svg.split .inbar{fill:#0B0E14;font-size:17px;font-weight:600}
-@media (prefers-reduced-motion:no-preference){
-  svg.split .row{transform-origin:0 60px;transform:scaleY(0);opacity:0}
-  svg.split.go .row{animation:rise 1.1s var(--ease) forwards}
-  svg.split.go .row-buy{animation-delay:.35s}
-  @keyframes rise{from{transform:scaleY(0);opacity:0}to{transform:scaleY(1);opacity:1}}
-}
 svg.quadrant{width:100%;height:auto;font-family:var(--font-mono)}
 svg.quadrant .grid{stroke:#243044;stroke-width:1}
 svg.quadrant .mid{stroke:#5E6C80;stroke-width:1.5;stroke-dasharray:4 5}
@@ -146,25 +135,51 @@ svg.quadrant .ptsub{fill:#8B98A9;font-size:12px}
 .step p{color:var(--muted);font-size:24px;line-height:1.45;margin-top:12px}
 .step code{font-family:var(--font-mono);color:var(--herd);font-size:21px;background:rgba(76,154,255,.08);padding:2px 8px;border-radius:6px}
 
-/* number */
-.number{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:start}
-.number .netline{display:flex;justify-content:space-between;align-items:center;padding:0 0 18px;border-bottom:1px solid var(--border);margin-bottom:6px}
-.number .netline .v{font-family:var(--font-mono);font-size:40px;color:var(--flag);font-weight:600}
-.number .side{font-family:var(--font-display);font-weight:700;font-size:30px}
-.number .stat{font-size:88px}
-.number .sub{font-family:var(--font-mono);font-size:18px;color:var(--muted);margin-top:8px}
-.number tr.sell td{background:linear-gradient(90deg,rgba(255,176,32,.07),transparent)}
+/* number — the stage: 1680x640, geometry in the svg, words in html at fixed offsets */
+.stage{position:relative;width:1680px;height:640px;margin-top:8px}
+.stage svg.stage-svg{position:absolute;inset:0;width:1680px;height:640px;font-family:var(--font-mono)}
+.stage .lbl{fill:#8B98A9;font-size:22px}
+.stage .flag{fill:#FF5C5C;font-size:22px;font-weight:600}
+.stage .bar{opacity:0}
+.stage .ghost{opacity:.6}
+.stage .half{opacity:0;transform-box:fill-box;transform-origin:0 0;transform:translate(var(--tx),var(--ty)) scale(var(--sx),var(--sy))}
+.stage .wallets{clip-path:inset(0 0 0 0)}
+.stage .lab{position:absolute;top:372px;width:760px}
+.stage .lab-sell{left:0}
+.stage .lab-buy{left:884px;width:796px}
+.stage .lab .k{font-family:var(--font-mono);font-size:22px;color:var(--muted);letter-spacing:.04em}
+.stage .lab .v{font-family:var(--font-display);font-weight:800;font-size:128px;letter-spacing:-.04em;line-height:1;font-feature-settings:var(--num);margin-top:10px}
+.stage .lab .s{font-family:var(--font-mono);font-size:24px;color:var(--text);margin-top:12px}
+.stage .lab .s b{font-weight:600}
+.number-foot{margin-top:22px;font-family:var(--font-mono);font-size:19px;color:var(--muted);display:flex;gap:28px;flex-wrap:wrap;align-items:center}
+.number-foot i{width:16px;height:11px;border-radius:2px;display:inline-block;vertical-align:-1px;margin-right:6px;background:var(--elephant)}
+.number-foot i.buy{background:var(--herd)}
+.number-foot i.rest{opacity:.42}
+@media (prefers-reduced-motion:no-preference){
+  /* the only kinetic event in the deck: the sum comes apart. Plays once per entry, never reverses. */
+  .stage.go .bar{animation:sumfade .7s var(--ease) 1s both}
+  .stage.go .ghost{animation:ghostin .7s var(--ease) 1s both}
+  .stage.go .half{animation:depart 1s var(--ease) .8s both,halffade .5s var(--ease) 2.15s both}
+  .stage.go .wallets-sell{animation:wipe .9s var(--ease) 1.9s both}
+  .stage.go .wallets-buy{animation:wipe .9s var(--ease) 2.05s both}
+  .stage.go .lab-sell{animation:labin .6s var(--ease) 2.7s both}
+  .stage.go .lab-buy{animation:labin .6s var(--ease) 2.9s both}
+  @keyframes sumfade{from{opacity:1}to{opacity:0}}
+  @keyframes ghostin{from{opacity:0}to{opacity:.6}}
+  @keyframes depart{from{transform:none}to{transform:translate(var(--tx),var(--ty)) scale(var(--sx),var(--sy))}}
+  @keyframes halffade{from{opacity:1}to{opacity:0}}
+  @keyframes wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+  @keyframes labin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  /* the hook: the summed number sits alone before the split is read out */
+  .slide.active .hook-then{animation:labin .7s var(--ease) 1.1s both}
+  /* the map: four tokens land one after another */
+  .slide.active svg.quadrant .pt{animation:pop .5s cubic-bezier(.2,.9,.3,1.2) both}
+  .slide.active svg.quadrant .pt:nth-of-type(2){animation-delay:.18s}
+  .slide.active svg.quadrant .pt:nth-of-type(3){animation-delay:.36s}
+  .slide.active svg.quadrant .pt:nth-of-type(4){animation-delay:.54s}
+  @keyframes pop{from{opacity:0}to{opacity:1}}
+}
 
-.strip{display:grid;grid-template-columns:.9fr 1.3fr 1fr;gap:24px;margin-top:26px}
-.strip .cell{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px 30px}
-.strip .cell.sell{background:linear-gradient(180deg,rgba(255,176,32,.08),var(--surface));border-color:rgba(255,176,32,.35)}
-.strip .k{font-family:var(--font-mono);font-size:17px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
-.strip .v{font-family:var(--font-display);font-weight:800;font-size:92px;letter-spacing:-.035em;line-height:1.05;font-feature-settings:var(--num);margin-top:6px}
-.strip .s{font-family:var(--font-mono);font-size:19px;color:var(--muted);margin-top:6px}
-svg.split.deck .lbl{font-size:22px}
-svg.split.deck .flag{font-size:22px}
-svg.split.deck .inbar{font-size:24px}
-svg.split.deck .row{transform-origin:0 80px}
 /* evidence */
 .ev{font-size:19px}
 .ev th,.ev td{padding:9px 12px;font-size:19px;white-space:nowrap}
@@ -247,6 +262,7 @@ a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2px solid 
   #viewport{position:static}
   #stage{position:static;transform:none!important;width:1920px;height:auto}
   .slide{display:block!important;position:relative;width:1920px;height:1080px;page-break-after:always;break-after:page;page-break-inside:avoid;break-inside:avoid;animation:none!important}
+  .stage *,.hook-then,svg.quadrant .pt{animation:none!important}
   #chrome,#notes,#overview,#hint{display:none!important}
   html,body,.slide{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
@@ -280,7 +296,7 @@ a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2px solid 
   <div class="kicker">AUSD on Ethereum · {{ausd.swaps}} swaps · {{ausd.captured_short}}</div>
   <div class="stat big">{{ausd.net}}</div>
   <div class="cap">net flow — the only number a flow dashboard prints</div>
-  <p class="then">One address sold <span class="amber">{{ausd.sell_top_vol_m}}</span> in {{ausd.sell_top_swaps}} swaps — <span class="amber">{{ausd.sell_top_share}}</span> of the sell side — into <span class="blue">{{ausd.buy_wallets}}</span> different buying wallets.</p>
+  <p class="then hook-then">One address sold <span class="amber">{{ausd.sell_top_vol_m}}</span> in {{ausd.sell_top_swaps}} swaps — <span class="amber">{{ausd.sell_top_share}}</span> of the sell side — into <span class="blue">{{ausd.buy_wallets}}</span> different buying wallets.</p>
   <aside class="speaker-notes">Plus two point one percent. Balanced. Same swaps, split by who made them: two-thirds of everything sold came from one wallet, and it was sold to two hundred and twelve people.</aside>
 </section>
 
@@ -323,13 +339,13 @@ a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2px solid 
 <!-- 05 THE NUMBER ══════════════════════════════════════════════════════════════ -->
 <section class="slide" data-title="The number">
   <div class="kicker">The number · {{ausd.symbol}} · {{ausd.platform}} · {{ausd.swaps}} swaps · {{ausd.captured_short}}</div>
-  {{split_svg_deck}}
-  <div class="strip">
-    <div class="cell"><div class="k">net flow</div><div class="v flag">{{ausd.net}}</div><div class="s">the only number a dashboard prints</div></div>
-    <div class="cell sell"><div class="k">sell · {{ausd.sells}} swaps · {{ausd.sell_wallets}} wallets</div><div class="v amber">{{ausd.sell_top_share}}</div><div class="s">one wallet · {{ausd.sell_top_vol}} in {{ausd.sell_top_swaps}} swaps</div></div>
-    <div class="cell"><div class="k">buy · {{ausd.buys}} swaps · {{ausd.buy_wallets}} wallets</div><div class="v blue">{{ausd.buy_top_share}}</div><div class="s">largest wallet · {{ausd.buy_top_vol}} in {{ausd.buy_top_swaps}} swaps</div></div>
+  <div class="stage">
+    {{split_stage_svg}}
+    <div class="lab lab-sell"><div class="k">sell · {{ausd.sells}} swaps · {{ausd.sell_wallets}} wallets · {{ausd.sell_vol}}</div><div class="v amber">{{ausd.sell_top_share}}</div><div class="s"><b>one wallet</b> · {{ausd.sell_top_vol}} in {{ausd.sell_top_swaps}} swaps</div></div>
+    <div class="lab lab-buy"><div class="k">buy · {{ausd.buys}} swaps · {{ausd.buy_wallets}} wallets · {{ausd.buy_vol}}</div><div class="v blue">{{ausd.buy_top_share}}</div><div class="s"><b>largest wallet</b> · {{ausd.buy_top_vol}} in {{ausd.buy_top_swaps}} swaps</div></div>
   </div>
-  <aside class="speaker-notes">This is the slide to remember. The grey bar is what a dashboard shows. Underneath it, the same eight hundred swaps attributed to the wallets that made them. The sell side is mostly one amber block. The buy side is two hundred and twelve slivers.</aside>
+  <p class="number-foot"><span>The bar is {{ausd.total_vol}} of swaps, drawn to volume: sell {{ausd.sell_frac}}, buy {{ausd.buy_frac}}. The halves are equal; the populations are not.</span><span><i></i><i class="buy"></i>the largest single wallet on that side</span><span><i class="rest"></i><i class="buy rest"></i>every other wallet on it</span></p>
+  <aside class="speaker-notes">This is the slide to remember. The grey bar is what a dashboard shows — eighty-four million dollars of swaps, and the two halves are the same size, which is all "balanced" ever meant. Pull them apart and attribute each to the wallets that made it: the sell side is mostly one amber block; the buy side is two hundred and twelve slivers.</aside>
 </section>
 
 <!-- 06 HAND CHECK ══════════════════════════════════════════════════════════════ -->
@@ -500,8 +516,8 @@ a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2px solid 
     prog.style.width = ((cur + 1) / n * 100) + '%';
     var a = slides[cur].querySelector('.speaker-notes');
     notes.textContent = a ? a.textContent : '';
-    var sp = slides[cur].querySelector('svg.split');
-    if (sp) { sp.classList.remove('go'); void sp.getBoundingClientRect(); sp.classList.add('go'); }
+    var st = slides[cur].querySelector('.stage');
+    if (st) { st.classList.remove('go'); void st.getBoundingClientRect(); st.classList.add('go'); }
     if (cur > 0) hint.classList.add('gone');
     try { history.replaceState(null, '', '#' + (cur + 1)); } catch (e) {}
     overview.querySelectorAll('.thumb').forEach(function(t, k){ t.classList.toggle('cur', k === cur); });
@@ -537,7 +553,6 @@ a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2px solid 
   buildOverview(); fit();
   var h = parseInt((location.hash || '#1').slice(1), 10); show(isNaN(h) ? 0 : h - 1);
   setTimeout(function(){ hint.classList.add('gone'); }, 6000);
-  if (reduce) { document.querySelectorAll('svg.split').forEach(function(s){ s.classList.add('go'); }); }
 })();
 </script>
 </body>

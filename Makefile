@@ -36,7 +36,7 @@ audit:  ## dependency + secret audit
 
 check:  ## refuse to ship a placeholder to a judge, or a page that drifted from its receipts
 	python3 scripts/check_submission_readiness.py
-	python3 scripts/render_site.py && git diff --exit-code --stat -- site JUDGE.md
+	python3 scripts/render_site.py --check
 
 ci: lint test audit check  ## everything CI runs, offline
 all: ci bench  ## ci plus the deterministic benchmark

@@ -127,8 +127,9 @@ svg.split .flag{fill:#FF5C5C;font-size:15px;font-weight:600}
 svg.split .inbar{fill:#0B0E14;font-size:15px;font-weight:600}
 @media (prefers-reduced-motion:no-preference){
   svg.split .row{transform-origin:0 60px;transform:translateY(0) scaleY(0);opacity:0}
-  svg.split.go .row{animation:rise 1.1s var(--ease) forwards}
-  svg.split.go .row-buy{animation-delay:.35s}
+  /* staged: the sum sits alone for a beat, then each side grows out of it — once, never back */
+  svg.split.go .row{animation:rise 1.1s var(--ease) 1.15s forwards}
+  svg.split.go .row-buy{animation-delay:1.5s}
   svg.split .sum rect{transform-origin:center;}
   @keyframes rise{from{transform:scaleY(0);opacity:0}to{transform:scaleY(1);opacity:1}}
 }
