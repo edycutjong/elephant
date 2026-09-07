@@ -9,7 +9,7 @@ Runs entirely on CoinMarketCap's KEYLESS surface. No API key, no signup — a ju
 file unmodified.
 
     python3 scripts/split_tape.py                      # default watchlist
-    python3 scripts/split_tape.py --address 0x... --pages 10
+    python3 scripts/split_tape.py --address 0x... --pages 2
 
 Verified fields (live, 2026-09-03), /v1/dex/tokens/transactions:
     tp   'buy' | 'sell'      the side, per swap
@@ -27,6 +27,8 @@ import urllib.request
 
 BASE = "https://pro-api.coinmarketcap.com/public-api"
 PAGE = 100  # hard cap: limit=200 and 500 both return HTTP 400
+RETRIES = 3  # 429 AND 5xx are transient on the anonymous tier — back off, don't fail
+BACKOFF_S = 15  # 15s, 30s, 60s: measured recovery is under a minute
 
 # ── Confidence floors (published rule — see README "Honest limitations") ──────────────
 # A ratio is only as trustworthy as the two averages it divides. Both floors below were
@@ -47,19 +49,46 @@ WATCHLIST = [
 ]
 
 
-def get(path, **params):
-    """One keyless GET. Errors are RETURNED, never swallowed — see pull_swaps."""
+def get(path, retries=RETRIES, **params):
+    """One keyless GET, with backoff on transient throttling.
+
+    Errors are RETURNED, never swallowed — see pull_swaps.
+
+    The anonymous tier throttles hard and recovers within roughly a minute. Observed
+    2026-09-07, it expresses the same condition TWO ways:
+
+        HTTP 429  error_code 1022  "You've reached the limit for anonymous access"
+        HTTP 500  error_code 500   "The system is busy, please try again later!"
+
+    Retrying only on 429 is therefore not enough — the 500 is the more common of the two.
+    Any 429 or 5xx is treated as transient; a 4xx other than 429 is permanent and returns
+    immediately, because retrying a 400 only wastes the judge's time.
+    """
     url = BASE + path + "?" + urllib.parse.urlencode(params)
-    req = urllib.request.Request(url, headers={"Accept": "application/json"})
-    try:
-        return json.load(urllib.request.urlopen(req, timeout=60))
-    except urllib.error.HTTPError as e:
-        return {"_err": f"HTTP {e.code}: {e.read().decode()[:160]}"}
-    except (urllib.error.URLError, TimeoutError, ValueError) as e:
-        return {"_err": f"{type(e).__name__}: {e}"}
+    last = "unknown error"
+    for attempt in range(retries + 1):
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        try:
+            return json.load(urllib.request.urlopen(req, timeout=60))
+        except urllib.error.HTTPError as e:
+            body = e.read().decode()[:160]
+            last = f"HTTP {e.code}: {body}"
+            transient = e.code == 429 or 500 <= e.code < 600
+            if not transient or attempt == retries:
+                return {"_err": last}
+            wait = BACKOFF_S * (2**attempt)
+            print(
+                f"    throttled (HTTP {e.code}) — waiting {wait}s "
+                f"(attempt {attempt + 1}/{retries})",
+                file=sys.stderr,
+            )
+            time.sleep(wait)
+        except (urllib.error.URLError, TimeoutError, ValueError) as e:
+            return {"_err": f"{type(e).__name__}: {e}"}
+    return {"_err": last}
 
 
-def pull_swaps(address, platform="ethereum", pages=3):
+def pull_swaps(address, platform="ethereum", pages=1):
     """Paginate the swap feed.
 
     Returns (swaps, meta). meta['error'] is None on a clean run and a string otherwise.
@@ -68,7 +97,7 @@ def pull_swaps(address, platform="ethereum", pages=3):
     list on HTTP 429, so a rate-limited fetch was indistinguishable from a token that
     genuinely had no swaps — the tool blamed the token for an infrastructure failure.
     """
-    seen, out, cursor, fetched, err = set(), [], None, 0, None
+    seen, out, cursor, fetched, err, stalled = set(), [], None, 0, None, False
     for _ in range(pages):
         q = {"platform": platform, "address": address, "limit": PAGE}
         if cursor:
@@ -89,7 +118,7 @@ def pull_swaps(address, platform="ethereum", pages=3):
         cursor = batch[-1].get("txId") or batch[-1].get("lgid")
         fetched += 1
         time.sleep(0.15)
-    return out, {"pages": fetched, "error": err}
+    return out, {"pages": fetched, "error": err, "stalled": stalled}
 
 
 def _confidence(n_buy, n_sell, avg_buy, avg_sell):
@@ -148,7 +177,11 @@ def main():
     ap.add_argument("--address")
     ap.add_argument("--symbol", default="TOKEN")
     ap.add_argument("--platform", default="ethereum")
-    ap.add_argument("--pages", type=int, default=3)
+    # Default 1, deliberately. The lastId cursor does not advance on this endpoint
+    # (see FEEDBACK.md #4), so page 2 returns the same 100 swaps page 1 did — it costs a
+    # call and yields nothing. Since the anonymous tier throttles at roughly this volume,
+    # a default of 3 spent 2/3 of the quota on duplicates and made the demo unreliable.
+    ap.add_argument("--pages", type=int, default=1)
     ap.add_argument("--json", metavar="PATH", help="also write the full result set here")
     a = ap.parse_args()
 
@@ -161,9 +194,10 @@ def main():
     )
     print("-" * 79)
 
-    rows, errors = [], []
+    rows, errors, stalled_any = [], [], False
     for sym, addr in targets:
         swaps, meta = pull_swaps(addr, a.platform, a.pages)
+        stalled_any = stalled_any or meta.get("stalled", False)
         if meta["error"]:
             # An API failure is an API failure. Never let it read as a property of the token.
             errors.append((sym, meta["error"]))
@@ -180,6 +214,12 @@ def main():
             f"{sym:7}{r['swaps']:7}{r['avg_buy']:12,.2f}{r['avg_sell']:12,.2f}"
             f"{r['ticket_ratio']:8.1f}x{r['buy_wallets']:8}{r['sell_wallets']:8}"
             f"{r['net_flow_pct']:9.1f}%  {note}"
+        )
+
+    if stalled_any and a.pages > 1:
+        print(
+            "\n  note: pagination stalled — the lastId cursor did not advance, so pages "
+            "beyond the first returned no new swaps. See FEEDBACK.md #4."
         )
 
     elapsed = time.time() - started
