@@ -169,9 +169,10 @@ Both `Called from` gaps are deliberate and worth stating plainly, because a tabl
 names proves nothing on its own:
 
 - **`pairs/quotes/latest`** returns volume and trade count per side, which is where this project
-  started. The sweep in [FEEDBACK.md §2](FEEDBACK.md) showed that at flat net flow the ticket
-  ratio those fields produce *is* the count ratio — the same quantity measured twice. It is listed
-  because rejecting it is a finding, not because we call it.
+  started. [FEEDBACK.md §7](FEEDBACK.md) derives why it was abandoned: at flat net flow the
+  ticket ratio those fields produce reduces to the count ratio — the same quantity measured
+  twice, exactly where a hidden asymmetry would be worth finding. It is listed because rejecting
+  it is a finding, not because we call it.
 - **`holders/count`** needs a key and runs on a daily cron, so it is neither keyless nor
   reproducible from a clone. It informs nothing on the judged path and its output is not here.
 
@@ -192,7 +193,7 @@ Remove CoinMarketCap and you would need a multi-chain swap indexer, a per-DEX po
 balance indexer, a wallet-labelling pipeline and a symbol→contract mapping service — five separate
 systems — to recompute what one endpoint returns in one call.
 
-We also wrote up **six dated, evidenced findings** for the CMC product team, including the one that
+We also wrote up **seven dated, evidenced findings** for the CMC product team, including the one that
 changed this project's entire mechanism: **[FEEDBACK.md](FEEDBACK.md)**.
 
 ---

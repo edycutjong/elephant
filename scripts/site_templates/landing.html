@@ -120,6 +120,11 @@ a:not(.btn):hover .arrow-ext{transform:translate(1px,-1px);opacity:1}
 /* ── reveal on scroll (motion only when allowed) ─────────────────────────────── */
 .reveal{opacity:1;transform:none}
 @media (prefers-reduced-motion:no-preference){
+  /* Nothing above the fold carries .reveal. The hero headline is the LCP element, and an
+     element that starts at opacity 0 is not painted until JavaScript adds .in — so LCP became
+     whatever the IntersectionObserver, or the 2.5 s safety timer behind it, happened to cost.
+     Measured on PageSpeed: 2,560 ms of "element render delay" against 0 ms to first byte, for
+     text that was in the HTML all along. The reveal starts at the hero visual instead. */
   .reveal{opacity:0;transform:translateY(18px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
   .reveal.in{opacity:1;transform:none}
   .reveal.d1{transition-delay:.08s}.reveal.d2{transition-delay:.16s}.reveal.d3{transition-delay:.24s}
@@ -419,15 +424,15 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
 <!-- ═══ HERO ═══════════════════════════════════════════════════════════════════ -->
 <section class="hero" id="hero">
   <div class="wrap">
-    <div class="eyebrow reveal">
+    <div class="eyebrow">
       <span>CoinMarketCap API</span><span class="dot"></span><span>keyless</span><span class="dot"></span><span>0 credits</span><span class="dot"></span><span>{{ausd.captured_date}}</span>
     </div>
-    <h1 class="reveal d1" style="margin-top:18px">
+    <h1 style="margin-top:18px">
       <span class="line1">The tape says balanced.</span>
       <span class="line2">One wallet is <span class="big" data-count="{{ausd.sell_top_share_int}}">{{ausd.sell_top_share_int}}%</span> of the sell side.</span>
     </h1>
-    <p class="lede reveal d2">Net flow is a sum, and summing is lossy.</p>
-    <div class="cta-row reveal d3">
+    <p class="lede">Net flow is a sum, and summing is lossy.</p>
+    <div class="cta-row">
       <a class="btn btn-primary" href="#number">See the number <span class="arrow arrow-down" aria-hidden="true">↓</span></a>
       <a class="btn" href="pitch/">Deck <span class="arrow" aria-hidden="true">→</span></a>
     </div>
@@ -830,7 +835,11 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
   // sticky header state
   var top = document.getElementById('top');
   function onScroll(){ top.classList.toggle('scrolled', window.scrollY > 8); }
-  window.addEventListener('scroll', onScroll, {passive:true}); onScroll();
+  // The initial call runs in a frame callback rather than inline: reading window.scrollY
+  // straight after the DOM is built forces a synchronous layout while the page is still
+  // parsing, which PageSpeed measured at 86 ms of forced reflow on this line.
+  window.addEventListener('scroll', onScroll, {passive:true});
+  requestAnimationFrame(onScroll);
 
   // reveal on scroll (CSS does nothing under reduced motion, so this is a no-op there)
   var io = 'IntersectionObserver' in window ? new IntersectionObserver(function(es){

@@ -154,6 +154,34 @@ is already public and unauthenticated; the header would let it be read where it 
 being served. If the concern is the keyed surface, sending it only on `/public-api` would be
 enough to unblock every keyless browser integration without touching authenticated traffic.
 
+## 7. Volume and count per side collapse to one number exactly where it matters
+
+**Derived, then confirmed against the DEX pair object · severity: low (a docs note, not a bug)**
+
+`24h_buy_volume` / `24h_sell_volume` and `24h_no_of_buys` / `24h_no_of_sells` look like two
+independent signals, and the obvious thing to do with them is divide: volume over count is an
+average ticket per side, and the buy:sell ticket ratio should say whether one side trades in
+bigger clips than the other. That is the metric this project set out to build.
+
+It is the same number twice, and the algebra says so:
+
+```
+ticket_ratio = (buyVol / nBuy) / (sellVol / nSell)
+             = (buyVol / sellVol) x (nSell / nBuy)
+```
+
+The first factor is net flow expressed as a quotient. So **whenever net flow is flat — the one
+case where a hidden asymmetry is worth finding — `buyVol ≈ sellVol`, the first factor goes to 1,
+and the ticket ratio degenerates to `nSell / nBuy`: the count ratio.** The two field families
+carry one signal between them precisely where a consumer needs two.
+
+**Why it matters:** this is not a defect, and nothing needs to change in the response. But it is
+the sort of thing a consumer discovers only after building on it, and one sentence in the field
+reference — that the aux volume and count fields are not independent at flat net flow — would
+save that trip. It is also why this project reads the per-swap feed instead: `maker address` on
+`/v1/dex/tokens/transactions` is a genuinely independent axis, and it is the reason the product
+exists in the form it does.
+
 ---
 
 ## What is genuinely excellent, and worth protecting
