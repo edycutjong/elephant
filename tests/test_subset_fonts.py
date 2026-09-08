@@ -68,9 +68,11 @@ def test_an_empty_set_declares_an_empty_range():
 
 
 def test_check_mode_writes_nothing_and_reports_the_committed_fonts_are_current():
-    """The gate CI runs. It re-cuts into a temp file, compares bytes, and deletes it — so a
-    passing check means the served fonts really are what this script would produce, not that
-    somebody remembered to run it."""
+    """The gate CI runs. It re-cuts into a temp file, compares the two cmaps, and deletes it —
+    so a passing check means the served fonts really do carry what this script would put in
+    them, not that somebody remembered to run it. The comparison is glyph coverage rather than
+    bytes because brotli output differs between this mac and the ubuntu runner; see the module
+    docstring of scripts/subset_fonts.py."""
     root = Path(__file__).resolve().parents[1]
     served = sorted((root / "site" / "assets" / "fonts").glob("*.woff2"))
     before = {p: p.read_bytes() for p in served}
@@ -113,6 +115,24 @@ def test_running_it_for_real_is_idempotent(capsys, monkeypatch):
 
     assert {p: p.read_bytes() for p in served} == before, "a second run changed the fonts"
     assert "make site" in out, "it tells the reader the next step"
+
+
+def test_a_font_the_repo_has_never_carried_is_written_out(tmp_path, monkeypatch, capsys):
+    """The write half of the same decision. Everything above runs against fonts that are
+    already current, which never reaches the line that installs a new cut — so point OUT at an
+    empty directory, where every source font is missing and all three must be produced."""
+    monkeypatch.setattr(subset_fonts, "OUT", tmp_path)
+    monkeypatch.setattr(sys, "argv", ["subset_fonts.py"])
+
+    subset_fonts.main()
+
+    cut = sorted(tmp_path.glob("*.woff2"))
+    src = sorted(subset_fonts.SRC.glob("*.woff2"))
+    assert [p.name for p in cut] == [p.name for p in src], "every source font was cut"
+    assert not list(tmp_path.glob("*.tmp.woff2")), "no temp file survived"
+    for f in cut:
+        assert subset_fonts.codepoints(f) >= {ord(c) for c in "abcXYZ0189"}, f"{f.name} is real"
+    assert "make site" in capsys.readouterr().out
 
 
 def test_a_template_whose_declared_range_drifted_is_rewritten(tmp_path, monkeypatch, capsys):

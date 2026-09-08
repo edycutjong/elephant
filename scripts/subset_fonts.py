@@ -21,6 +21,15 @@ nobody kept a copy of.
 
 `unicode-range` is rewritten to match what is really in each file: a declaration that claims
 coverage the font does not have is a lie the browser then has to work around per character.
+
+STALE MEANS MISSING GLYPHS, NOT DIFFERENT BYTES. woff2 is brotli-compressed, and brotli does
+not emit identical bytes across platforms and library versions: the same source font, the same
+glyph set and the same pyftsubset flags produce 28.1 KiB on this mac and 28.0 KiB on ubuntu
+(measured 2026-09-08, python:3.11-slim). A byte comparison would therefore fail on every
+machine that is not the one that last ran `make fonts`, which is a gate that reports the
+runner rather than the fonts. So --check re-cuts, then compares the *cmap* of the fresh cut
+against the served file. That is the thing a reader can actually be hurt by — a character the
+page renders and the font does not carry — and it is identical everywhere.
 """
 
 import argparse
@@ -29,6 +38,8 @@ import subprocess
 import sys
 from html import unescape
 from pathlib import Path
+
+from fontTools.ttLib import TTFont
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "assets" / "fonts-src"
@@ -82,6 +93,15 @@ def unicode_range(chars):
     return ", ".join(f"U+{a:04X}" if a == b else f"U+{a:04X}-{b:04X}" for a, b in out)
 
 
+def codepoints(path):
+    """Every Unicode codepoint a woff2 actually carries — the portable identity of a subset."""
+    font = TTFont(path)
+    try:
+        return {cp for table in font["cmap"].tables for cp in table.cmap}
+    finally:
+        font.close()
+
+
 def subset_one(src, dst, chars, check):
     codes = ",".join(f"U+{ord(c):04X}" for c in chars)
     tmp = dst.with_suffix(".tmp.woff2")
@@ -100,10 +120,13 @@ def subset_one(src, dst, chars, check):
         check=True,
     )
     new = tmp.read_bytes()
-    stale = (not dst.exists()) or dst.read_bytes() != new
-    if check:
+    stale = (not dst.exists()) or codepoints(tmp) != codepoints(dst)
+    # Nothing to do when the served file already carries the same glyphs: rewriting it would
+    # churn bytes that differ only by this machine's brotli, and `make fonts` on a second
+    # machine would show up as a diff nobody can explain.
+    if check or not stale:
         tmp.unlink()
-        return stale, src.stat().st_size, len(new)
+        return stale, src.stat().st_size, len(new) if not dst.exists() else dst.stat().st_size
     tmp.replace(dst)
     return stale, src.stat().st_size, len(new)
 
@@ -147,7 +170,11 @@ def main():
                 print(f"  unicode-range rewritten in {tpl.name}")
 
     if a.check and stale:
-        print("\nThe served fonts or the unicode-range are stale. Run: make fonts", file=sys.stderr)
+        print(
+            "\nThe served fonts are missing glyphs the pages render, or the unicode-range "
+            "no longer matches them. Run: make fonts",
+            file=sys.stderr,
+        )
         sys.exit(1)
     if not a.check:
         print("\nNow re-render so the pages pick up the new range:  make site")

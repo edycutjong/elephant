@@ -865,8 +865,10 @@ def test_every_rendered_character_is_in_the_served_fonts(tmp_path):
 
 
 def test_the_served_fonts_are_not_stale_against_the_pages(tmp_path):
-    """`--check` re-cuts into a temp file and compares bytes, so a copy change that adds a
-    glyph fails here rather than shipping a page that quietly falls back."""
+    """`--check` re-cuts into a temp file and compares that cut's glyph coverage against the
+    served file, so a copy change that adds a glyph fails here rather than shipping a page that
+    quietly falls back. Coverage rather than bytes: brotli is not reproducible across
+    platforms, and a byte gate would fail on the runner while the fonts were fine."""
     import subprocess
 
     root = Path(__file__).resolve().parents[1]

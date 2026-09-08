@@ -57,6 +57,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with: { python-version: '3.11' }
+      # subset_fonts.py drives pyftsubset and reads a woff2's cmap; both come from fonttools.
+      - run: pip install -r requirements-dev.txt
       - run: python3 scripts/check_submission_readiness.py
       # The landing page, the deck and JUDGE.md are rendered from docs/proof/*.json. If the
       # committed output is not what the generator produces, a number was edited by hand — fail.
