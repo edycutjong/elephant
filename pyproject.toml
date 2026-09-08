@@ -8,8 +8,16 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 [tool.ruff.lint.per-file-ignores]
 # the browser QA harness embeds JavaScript snippets; wrapping them to 100 columns hurts more than it helps
 "scripts/qa_site.py" = ["E501"]
+# and its test embeds a whole HTML document, meta tags and all, for the harness to fail on
+"tests/test_qa_site.py" = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
 markers = ["live: hits the real CoinMarketCap API"]
+
+[tool.coverage.run]
+# The QA harness drives chromium through playwright's sync API, which runs the calling code
+# on a greenlet; without this the tracer loses every line executed after the first browser
+# call and reports a harness that demonstrably ran as unexecuted.
+concurrency = ["thread", "greenlet"]

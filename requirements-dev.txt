@@ -3,3 +3,9 @@ pytest-cov>=7.1.0
 ruff>=0.16.6
 pip-audit>=2.10.1
 hypothesis>=6.167.1
+# tests/test_qa_site.py drives the browser QA harness; the browser itself is not a pip
+# package — `python3 -m playwright install chromium`, which `make install` runs. Without it
+# those tests skip rather than fail, and coverage of scripts/qa_site.py drops with them.
+playwright>=1.57.0
+pillow>=11.1.0
+numpy>=1.26.4
