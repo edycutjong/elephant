@@ -3,14 +3,15 @@
 help:  ## show targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n",$$1,$$2}'
 
-install:  ## install dev deps
+install:  ## install dev deps + the chromium the browser QA gates drive
 	python3 -m pip install -r requirements-dev.txt
+	python3 -m playwright install chromium
 
 lint:  ## ruff check + format check
 	ruff check . && ruff format --check .
 
-test:  ## pytest with coverage, offline only (no network)
-	pytest -q -m "not live" --cov=scripts --cov-report=term-missing
+test:  ## pytest with coverage, offline only (no internet), gated at 100% of scripts/
+	pytest -q -m "not live" --cov=scripts --cov-report=term-missing --cov-fail-under=100
 
 test-live:  ## the live tests — hits the real CoinMarketCap API
 	pytest -q -m live
