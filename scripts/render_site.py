@@ -571,7 +571,10 @@ def main():
     # plot frame; qa_site.py measures the result rather than trusting these numbers
     points = [
         point(A, "sell", lx=0, ly=-38, anchor="middle"),  # centred above: clear of x=387
-        point(S, "buy", lx=22, ly=-14),  # right, raised: the sub-label clears y=256
+        # centred above, like the other three: to the right its "net +0.9%" sub-label ran
+        # 3 px past the 25% grid line at 375 px — the only width where the label is wide
+        # relative to the plot. Measured, not eyeballed: see qa_site map_grid_crossings.
+        point(S, "buy", lx=0, ly=-40, anchor="middle"),
         point(Bg, "both", lx=-26, ly=66, anchor="end"),
         point(C, "none", lx=22, ly=-12),  # right, raised: the sub-label stays above the frame
     ]
