@@ -427,6 +427,7 @@ elephant/
 | **Pitch deck** | **[elephant.edycu.dev/pitch](https://elephant.edycu.dev/pitch/)** — 11 slides, arrow keys, `P` for notes. |
 | **For judges** | **[JUDGE.md](JUDGE.md)** — the 30-second path. |
 | **The receipt** | **[DEMO.md](DEMO.md)** — the live run transcribed, with [`docs/proof/ausd.json`](docs/proof/ausd.json) behind it. |
+| **Submission** | **[dorahacks.io/buidl/48344](https://dorahacks.io/buidl/48344)** — the BUIDL page for Build with CMC, Data and Visualisation track. |
 
 The video's numbers and the landing page's differ slightly — 61.7% against 62.0% — because the
 800-swap window moved between the two runs. Same wallet, same $25,459,824, same 12 swaps. The video
