@@ -708,3 +708,53 @@ def test_a_throttle_before_any_page_is_still_a_failure_not_an_empty_result(monke
         split_tape.main()
     assert ex.value.code == 75, "EX_TEMPFAIL — nothing landed, so this is a rate limit not a row"
     assert "API error" in capsys.readouterr().out
+
+
+# ── holder count: context for the share, and never able to break the run ─────────────
+
+
+def test_holder_count_reads_the_camelcase_parameter_the_endpoint_actually_wants():
+    """`address` is what every neighbouring DEX endpoint takes. This one wants `tokenAddress`,
+    and answers `address` with error 4002 "Missing required parameter" — which reads exactly
+    like an endpoint that needs a key. That casing is why the holder series was collected with
+    a keyed cron for days before anyone tried it unkeyed."""
+    seen = {}
+
+    def fake_get(path, retries=3, **params):
+        seen.update({"path": path, "params": params})
+        return {"data": {"count": "1150"}}
+
+    import split_tape as st
+
+    real, st.get = st.get, fake_get
+    try:
+        n = st.holders_count("0xabc", "ethereum")
+    finally:
+        st.get = real
+    assert n == 1150
+    assert seen["path"] == "/v1/dex/holders/count"
+    assert seen["params"] == {"platform": "ethereum", "tokenAddress": "0xabc"}, (
+        "tokenAddress, camelCase — not address"
+    )
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        {"_err": "HTTP 429 (error 1022)"},  # throttled
+        {"data": None},  # answered, no payload
+        {"data": {"count": None}},  # payload, no count
+        {"data": {"count": "not-a-number"}},  # count that will not parse
+    ],
+)
+def test_a_holder_count_that_does_not_answer_returns_none_and_never_raises(response):
+    """The share is the product; the holder count is context beside it. A run that has already
+    computed its number must not die because a second, optional call was rate-limited — the
+    rate limit is per IP and this call is made after the expensive one has succeeded."""
+    import split_tape as st
+
+    real, st.get = st.get, lambda path, retries=3, **p: response
+    try:
+        assert st.holders_count("0xabc") is None
+    finally:
+        st.get = real

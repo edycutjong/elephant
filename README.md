@@ -163,9 +163,9 @@ Full derivation, including every failure mode and the deliberate non-architectur
 | `/public-api/v1/dex/tokens/transactions` | per-swap side, USD value, maker address — **the engine** | ❌ none | [`scripts/split_tape.py`](scripts/split_tape.py) |
 | `/public-api/v4/dex/spot-pairs/latest` | enumerating a token universe, to choose what to split | ❌ none | [`scripts/sweep_universe.py`](scripts/sweep_universe.py) |
 | `/public-api/v4/dex/pairs/quotes/latest` | evaluated and **rejected** — its `24h_buy_volume` / `24h_sell_volume` are the aggregates this project exists to argue against | ❌ none | *nothing — see below* |
-| `/v1/dex/holders/count` | a daily holder-count series, collected privately | ✅ Startup | *nothing here — the collector is not part of this repo* |
+| `/v1/dex/holders/count` | how many addresses hold the token — context for the share | ❌ none | [`scripts/split_tape.py`](scripts/split_tape.py) |
 
-Both `Called from` gaps are deliberate and worth stating plainly, because a table of endpoint
+The one `Called from` gap is deliberate and worth stating plainly, because a table of endpoint
 names proves nothing on its own:
 
 - **`pairs/quotes/latest`** returns volume and trade count per side, which is where this project
@@ -173,8 +173,13 @@ names proves nothing on its own:
   ticket ratio those fields produce reduces to the count ratio — the same quantity measured
   twice, exactly where a hidden asymmetry would be worth finding. It is listed because rejecting
   it is a finding, not because we call it.
-- **`holders/count`** needs a key and runs on a daily cron, so it is neither keyless nor
-  reproducible from a clone. It informs nothing on the judged path and its output is not here.
+- **`holders/count`** is called once per run, for the hero row only. It answers keyless — the
+  parameter is `tokenAddress` in camelCase, and `address`, which every neighbouring endpoint
+  takes, returns error 4002 here. That is why it reads as key-only until you guess the casing.
+  It is context, not an input: "one wallet is 62.0% of the sell side" reads differently for a
+  token held by 1,150 addresses than for one held by 382,000. The published selection rule
+  never sees it — adding a signal to the ranking after publishing the rule would be moving the
+  target.
 
 Everything else is runnable right now, with no key:
 
@@ -204,7 +209,7 @@ changed this project's entire mechanism: **[FEEDBACK.md](FEEDBACK.md)**.
 |---|---|
 | Live run wall clock | **29.4 s** — 800 swaps of one token, 8 calls, clean path · **10.0 s** — the 8-token watchlist |
 | **Credits used** | **0** — keyless, with every CMC env var explicitly unset |
-| Tests | **74** (69 offline, 5 live) |
+| Tests | **79** (74 offline, 5 live) |
 | Regression tests named for the defect they pin | 12 |
 | **Property-based verification of `split()`** | **2,000 generated tapes, 0 failing** |
 | Malformed-response boundary cases | 6 |
@@ -279,7 +284,7 @@ python3 scripts/split_tape.py --json run.json      # the watchlist, full result 
 ```bash
 make install     # dev deps (pytest, hypothesis, ruff, pip-audit) + the chromium the QA gates drive
 make lint        # ruff check + format check
-make test        # 69 offline tests, coverage gated at 100%, no internet
+make test        # 74 offline tests, coverage gated at 100%, no internet
 make test-live   # 5 tests against the real CoinMarketCap contract
 make demo        # the judged capability, live, no key
 make bench       # deterministic p50/p95 over the captured tape
@@ -293,7 +298,7 @@ make ci          # lint + test + audit + check
 | Layer | Tool | Status |
 |---|---|---|
 | Code quality | ruff (check + format) | ✅ |
-| Unit testing | pytest, 69 offline tests | ✅ |
+| Unit testing | pytest, 74 offline tests | ✅ |
 | Property testing | hypothesis, 2,000 cases | ✅ |
 | Live contract testing | pytest `-m live` against real CMC | ✅ |
 | Security (SAST) | CodeQL | ✅ |

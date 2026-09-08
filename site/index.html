@@ -1242,7 +1242,7 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
           <tr class="engine"><td><code>/public-api/v1/dex/tokens/transactions</code></td><td><b>The engine.</b> Per-swap <span class="mono">tp</span>, <span class="mono">v</span>, <span class="mono">ma</span>; cursor via <span class="mono">data.lastId</span>. Run <span class="mono">make demo</span>.</td><td>none</td></tr>
           <tr><td><code>/public-api/v4/dex/spot-pairs/latest</code></td><td>Enumerates the token universe — the step that picks what to split. Run <span class="mono">make sweep</span>.</td><td>none</td></tr>
           <tr><td><code>/public-api/v4/dex/pairs/quotes/latest</code></td><td>Rejected, so nothing calls it: at flat net flow its buy/sell volume ratio is only the count ratio again.</td><td>none</td></tr>
-          <tr><td><code>/v1/dex/holders/count</code></td><td>Daily holder-count series. Keyed, on a cron, and not in this repository.</td><td>Startup</td></tr>
+          <tr><td><code>/v1/dex/holders/count</code></td><td>How many addresses hold the token: context beside the share, never an input to the rule.</td><td>none</td></tr>
         </tbody>
       </table>
       </div>
@@ -1310,7 +1310,7 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
       <a href="https://github.com/edycutjong/elephant/blob/main/docs/proof/bingo.json" target="_blank" rel="noopener noreferrer"><div class="f">docs/proof/bingo.json<span class="arrow arrow-ext" aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></div><div class="m">BINGO · 800 swaps · 2026-09-07 07:02:51 UTC</div></a>
       <a href="https://github.com/edycutjong/elephant/blob/main/docs/proof/gme.json" target="_blank" rel="noopener noreferrer"><div class="f">docs/proof/gme.json<span class="arrow arrow-ext" aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></div><div class="m">GME · 800 swaps · 2026-09-07 07:03:48 UTC</div></a>
     </div>
-    <p class="muted" style="margin-top:14px;font-size:.9rem">Also in the repo: 74 tests (69 offline, 5 against the live contract), a 2,000-case property check that the maker share can never escape its own denominator, and a CI job that runs the real split on every push with no secret configured.</p>
+    <p class="muted" style="margin-top:14px;font-size:.9rem">Also in the repo: 79 tests (74 offline, 5 against the live contract), a 2,000-case property check that the maker share can never escape its own denominator, and a CI job that runs the real split on every push with no secret configured.</p>
   </div>
 </section>
 

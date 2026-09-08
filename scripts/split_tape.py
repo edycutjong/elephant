@@ -289,6 +289,34 @@ def pull_swaps(address, platform="ethereum", pages=1):
     }
 
 
+def holders_count(address, platform="ethereum"):
+    """How many addresses hold this token, or None if the call did not answer.
+
+    Context for the share, not an input to it. "One wallet is 62% of the sell side" reads
+    differently for a token held by 1,150 addresses than for one held by 382,000: the first is
+    a small book where one desk can dominate, the second is a crowd where it should not be
+    able to. The selection rule is unchanged and does not see this number — adding it to the
+    ranking after publishing the rule would be moving the target.
+
+    Called ONCE per run, for the hero row only. It is one more request against a per-IP rate
+    limit and it is not worth spending on every token in the watchlist.
+
+    Keyless. The parameter is `tokenAddress` in camelCase — `address`, which every neighbouring
+    endpoint takes, returns error 4002 here, which is why this endpoint reads as key-only until
+    you guess the casing.
+
+    Returns None rather than raising: this is context, and context must never take down a run
+    that already has its number.
+    """
+    d = get("/v1/dex/holders/count", platform=platform, tokenAddress=address)
+    if "_err" in d:
+        return None
+    try:
+        return int((d.get("data") or {}).get("count"))
+    except (TypeError, ValueError):
+        return None
+
+
 def _confidence(n_buy, n_sell, avg_buy, avg_sell):
     """Why this row's ratio may not mean what it appears to mean. 'ok' or a reason."""
     if min(n_buy, n_sell) < MIN_SIDE_SWAPS:
@@ -550,6 +578,15 @@ def main():
             f"  {other}: {hero[f'{other}s']} swaps from {hero[f'{other}_wallets']} distinct "
             f"wallets, largest {hero[f'{other}_top_share'] * 100:.1f}%"
         )
+        holders = holders_count(hero["address"], hero["platform"])
+        hero["holders"] = holders
+        if holders:
+            traded = hero["buy_wallets"] + hero["sell_wallets"]
+            print(
+                f"  holders: {holders:,} addresses hold {hero['symbol']} — "
+                f"{traded} of them traded in this window "
+                f"({traded / holders * 100:.1f}%)"
+            )
         print(
             f"  supporting: {hero['buys']} buys avg ${hero['avg_buy']:,.0f} · "
             f"{hero['sells']} sells avg ${hero['avg_sell']:,.0f} · "
