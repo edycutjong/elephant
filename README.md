@@ -1,10 +1,12 @@
 <div align="center">
 
+<img src="docs/assets/icon.svg" alt="Elephant Tracks icon" width="144">
+
 <h1>Elephant Tracks 🐘</h1>
 
-<img src="docs/assets/hero.svg" alt="Elephant Tracks — net flow reads +2.1%, “balanced”, while one wallet is 62.0% of AUSD’s sell side against 212 buying wallets." width="900">
-
 <p><em>The tape says balanced. The split says one wallet and a crowd.</em></p>
+
+<img src="docs/assets/hero.svg" alt="Elephant Tracks — net flow reads +2.1% while one wallet is 62.0% of AUSD’s sell side." width="900">
 
 <p>Net flow is a sum, and summing is lossy. Elephant Tracks splits the tape back apart —
 per side, how much of it is <strong>one wallet</strong> — from real swaps and their maker addresses.</p>

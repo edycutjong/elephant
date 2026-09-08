@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
+     role="img" aria-label="Elephant Tracks — a flat grey bar splits into one tall amber block and a scatter of small blue ones">
+  <title>Elephant Tracks — splitting the tape</title>
+  <!--
+  STORYBOARD — master dur 6s. Every keyTime below is a fraction of that one dur.
+    beat 1   0-10%   0.00s-0.60s  POSTER: the split fully assembled — identical to icon.svg. Frame 0 is a usable still.
+    beat 2  10-18%   0.60s-1.08s  reset: the split DISSOLVES (opacity only, uniform — a scene cut, not the mechanism
+                                   in reverse). Geometry never travels back into the bar.
+    beat 3  18-35%   1.08s-2.10s  the tape as everyone reads it: one flat grey bar, alone.
+    beat 4  35-62%   2.10s-3.72s  SIGNATURE — A flat grey bar splits into one tall amber block and a scatter of small blue ones.
+                                   Amber grows up out of the bar first; the herd grows out of it after, staggered.
+                                   Both populations animate GEOMETRY (y + height) — one motion language for one event.
+    beat 5  62-100%  3.72s-6.00s  hold. Seam: frame 6s == frame 0s, and the ±0.2s on either side are all hold,
+                                   so the loop closes at zero velocity. Exactly one collapse and one recovery per loop.
+  -->
+  <style>
+    /* D7: prefers-reduced-motion. SMIL ignores CSS animation:none, so the guard swaps the animated
+       story layer for a static duplicate of the poster frame instead of trying to still it.
+
+       The still layer is hidden by a display="none" ATTRIBUTE on the group rather than by a rule
+       here, because GitHub sanitises SVG it renders in a README and may drop this whole block. If
+       it does, the attribute still hides the duplicate and the animation plays; if this block
+       survives, a CSS rule outranks a presentation attribute and reduced motion gets its still.
+       Hiding it from here alone would fail the other way: both layers drawn, on top of each other. */
+    @media (prefers-reduced-motion: reduce) { .anim { display: none; } .still { display: inline; } }
+  </style>
+  <!-- plate: opaque, so the mark holds on GitHub light AND dark -->
+  <rect width="512" height="512" rx="112" fill="#0B0E14"/>
+  <rect x="8" y="8" width="496" height="496" rx="105" fill="none" stroke="#5E6C80" stroke-width="6"/>
+
+  <!-- the tape they were summed into: one flat bar, always present, always full — the sum never goes away -->
+  <rect x="104" y="374" width="304" height="20" rx="10" fill="#5E6C80"/>
+
+  <!-- animated story layer -->
+  <g class="anim">
+    <rect x="104" width="86" rx="10" fill="#FFB020">
+      <animate attributeName="opacity" values="1;1;0;0;1;1" keyTimes="0;0.1;0.18;0.20;0.21;1" dur="6s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="118;118;118;374;374;118;118" keyTimes="0;0.1;0.18;0.181;0.35;0.5;1" calcMode="spline" keySplines="0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0.16 0.84 0.44 1;0 0 1 1" dur="6s" repeatCount="indefinite"/>
+      <animate attributeName="height" values="222;222;222;0;0;222;222" keyTimes="0;0.1;0.18;0.181;0.35;0.5;1" calcMode="spline" keySplines="0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0.16 0.84 0.44 1;0 0 1 1" dur="6s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="228" width="52" rx="8" fill="#4C9AFF">
+      <animate attributeName="opacity" values="1;1;0;0;1;1" keyTimes="0;0.1;0.18;0.20;0.21;1" dur="6s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="284;284;284;374;374;284;284" keyTimes="0;0.1;0.18;0.181;0.4;0.52;1" calcMode="spline" keySplines="0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0.16 0.84 0.44 1;0 0 1 1" dur="6s" repeatCount="indefinite"/>
+      <animate attributeName="height" values="56;56;56;0;0;56;56" keyTimes="0;0.1;0.18;0.181;0.4;0.52;1" calcMode="spline" keySplines="0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0.16 0.84 0.44 1;0 0 1 1" dur="6s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="292" width="52" rx="8" fill="#4C9AFF">
+      <animate attributeName="opacity" values="1;1;0;0;1;1" keyTimes="0;0.1;0.18;0.20;0.21;1" dur="6s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="270;270;270;374;374;270;270" keyTimes="0;0.1;0.18;0.181;0.43;0.55;1" calcMode="spline" keySplines="0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0.16 0.84 0.44 1;0 0 1 1" dur="6s" repeatCount="indefinite"/>
+      <animate attributeName="height" values="70;70;70;0;0;70;70" keyTimes="0;0.1;0.18;0.181;0.43;0.55;1" calcMode="spline" keySplines="0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0.16 0.84 0.44 1;0 0 1 1" dur="6s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="356" width="52" rx="8" fill="#4C9AFF">
+      <animate attributeName="opacity" values="1;1;0;0;1;1" keyTimes="0;0.1;0.18;0.20;0.21;1" dur="6s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="292;292;292;374;374;292;292" keyTimes="0;0.1;0.18;0.181;0.46;0.58;1" calcMode="spline" keySplines="0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0.16 0.84 0.44 1;0 0 1 1" dur="6s" repeatCount="indefinite"/>
+      <animate attributeName="height" values="48;48;48;0;0;48;48" keyTimes="0;0.1;0.18;0.181;0.46;0.58;1" calcMode="spline" keySplines="0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0.16 0.84 0.44 1;0 0 1 1" dur="6s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="228" width="52" rx="8" fill="#4C9AFF" opacity="0.55">
+      <animate attributeName="opacity" values="0.55;0.55;0;0;0.55;0.55" keyTimes="0;0.1;0.18;0.20;0.21;1" dur="6s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="216;216;216;260;260;216;216" keyTimes="0;0.1;0.18;0.181;0.5;0.6;1" calcMode="spline" keySplines="0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0.16 0.84 0.44 1;0 0 1 1" dur="6s" repeatCount="indefinite"/>
+      <animate attributeName="height" values="44;44;44;0;0;44;44" keyTimes="0;0.1;0.18;0.181;0.5;0.6;1" calcMode="spline" keySplines="0 0 1 1;0 0 1 1;0 0 1 1;0 0 1 1;0.16 0.84 0.44 1;0 0 1 1" dur="6s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+  <!-- reduced-motion still: the poster frame, no SMIL -->
+  <g class="still" display="none">
+    <rect x="104" y="118" width="86" height="222" rx="10" fill="#FFB020"/>
+    <rect x="228" y="284" width="52" height="56" rx="8" fill="#4C9AFF"/>
+    <rect x="292" y="270" width="52" height="70" rx="8" fill="#4C9AFF"/>
+    <rect x="356" y="292" width="52" height="48" rx="8" fill="#4C9AFF"/>
+    <rect x="228" y="216" width="52" height="44" rx="8" fill="#4C9AFF" opacity="0.55"/>
+  </g>
+</svg>
