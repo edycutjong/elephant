@@ -439,7 +439,11 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
       <a class="btn" href="pitch/">Deck <span class="arrow" aria-hidden="true">→</span></a>
     </div>
 
-    <div class="hero-viz reveal d3">
+    <!-- Not gated on the observer. At 390 px this sits at y=472 of an 844 px viewport, so
+         it is above the fold and fading it in over 0.7 s leaves a third of the first
+         screen visually incomplete — which is what Speed Index measures. The staged
+         split inside it still plays; that animation is the argument, not decoration. -->
+    <div class="hero-viz">
       <div class="viz-legend" aria-hidden="true">
         <div><span class="flag mono">net flow {{ausd.net}}</span> — what every dashboard prints</div>
         <div><span class="amber mono">sell</span> {{ausd.sells}} swaps · {{ausd.sell_wallets}} wallets · <b class="amber">one wallet {{ausd.sell_top_share}}</b></div>
