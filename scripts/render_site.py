@@ -28,7 +28,13 @@ REPO = "https://github.com/edycutjong/elephant"
 VIDEO = "https://youtu.be/I1yOhXSutAk"  # 2:45 demo — a real keyless run, captioned
 SITE_URL = "https://elephant.edycu.dev"
 EVENT = "https://dorahacks.io/hackathon/coinmarketcap-api-202609/detail"
-VERSION = "v0.0.0-dev"
+# The footer used to carry a literal version, and it read "v0.0.0-dev" on a page that had
+# shipped four releases. Any number embedded here goes stale by construction: release.yml
+# tags from the commit subjects AFTER a push, so the page is rendered before its own version
+# exists, and the check job clones shallow with no tags so it cannot be derived either without
+# making CI race the release. The label is therefore the thing that is always true, and the
+# link it wraps resolves to the release that is actually latest at the moment someone clicks.
+VERSION = "latest release"
 # the human behind the page: <meta name="author"> and the card byline on X
 AUTHOR = "Edy Cu"
 X_HANDLE = "@edycutjong"
