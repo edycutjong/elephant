@@ -1,12 +1,29 @@
 name: release
 
+# Publishes a GitHub Release for a version tag someone chose to push.
+#
+# This used to run on every push to main and compute the next version from the commit
+# messages since the last tag. That is a reasonable default for a library with a release
+# cadence, and the wrong one here: it meant the version of a hackathon submission moved
+# every time a typo was fixed, and "what version is this?" had no answer anybody had
+# decided. v1.0.0 is a statement that the thing is finished, and a statement should not be
+# made by a regex over commit subjects.
+#
+#   git tag -a v1.1.0 -m "v1.1.0 — <what changed>" && git push origin v1.1.0
+#
+# The tag is the decision; this workflow only writes it up.
+
 on:
   push:
-    branches: [ "main" ]
+    tags: [ "v*" ]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to publish a release for (e.g. v1.0.0)"
+        required: true
 
 permissions:
-  contents: write        # required to push the tag and create the Release
+  contents: write        # required to create the Release
 
 jobs:
   release:
@@ -14,53 +31,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0        # full history — we read commits since the last tag
-
-      - name: Compute next version from Angular commits
-        id: ver
-        run: |
-          set -euo pipefail
-          LAST=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$LAST" ]; then
-            RANGE=""; CUR="0.0.0"
-          else
-            RANGE="${LAST}..HEAD"; CUR="${LAST#v}"
-          fi
-          LOG=$(git log --format=%B $RANGE)
-          if [ -z "$(echo "$LOG" | tr -d '[:space:]')" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-
-          BUMP=none
-          echo "$LOG" | grep -qE '^(feat|fix|perf)(\(.+\))?!:|BREAKING CHANGE:' && BUMP=major
-          [ "$BUMP" = none ] && echo "$LOG" | grep -qE '^feat(\(.+\))?:'        && BUMP=minor
-          [ "$BUMP" = none ] && echo "$LOG" | grep -qE '^(fix|perf)(\(.+\))?:'  && BUMP=patch
-          if [ "$BUMP" = none ]; then
-            echo "No releasable commits since ${LAST:-the beginning}."
-            echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-
-          IFS=. read -r MA MI PA <<< "$CUR"
-          case "$BUMP" in
-            major) MA=$((MA+1)); MI=0; PA=0 ;;
-            minor) MI=$((MI+1)); PA=0 ;;
-            patch) PA=$((PA+1)) ;;
-          esac
-          NEXT="v${MA}.${MI}.${PA}"
-          echo "Bump: $BUMP  ${LAST:-none} -> $NEXT"
-          echo "next=$NEXT"  >> "$GITHUB_OUTPUT"
-          echo "bump=$BUMP"  >> "$GITHUB_OUTPUT"
-          echo "skip=false"  >> "$GITHUB_OUTPUT"
-
-      - name: Tag and publish the release
-        if: steps.ver.outputs.skip == 'false'
+          fetch-depth: 0        # full history, so the generated notes have a range to walk
+      - name: Publish the release for this tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
         run: |
           set -euo pipefail
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "${{ steps.ver.outputs.next }}" -m "${{ steps.ver.outputs.next }}"
-          git push origin "${{ steps.ver.outputs.next }}"
-          gh release create "${{ steps.ver.outputs.next }}" \
-            --generate-notes --title "${{ steps.ver.outputs.next }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists — nothing to do."
+            exit 0
+          fi
+          gh release create "$TAG" --generate-notes --title "$TAG"
