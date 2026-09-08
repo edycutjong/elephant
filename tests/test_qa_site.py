@@ -81,18 +81,31 @@ POINT = (
 
 
 @pytest.fixture(scope="module")
-def browser():
+def chromium_installed():
+    """Skip, rather than fail, where `playwright install chromium` has never been run.
+
+    The context is opened and closed again inside this fixture on purpose: a test that
+    starts playwright itself — qa_site.py's own `sync_playwright()` — cannot run inside a
+    sync API context that is still open, so the check must not hold one.
+    """
     with sync_api.sync_playwright() as pw:
         try:
-            b = pw.chromium.launch()
+            pw.chromium.launch().close()
         except sync_api.Error as e:  # chromium not installed on this machine
             pytest.skip(f"chromium is not installed: {str(e).splitlines()[0]}")
+    return True
+
+
+@pytest.fixture(scope="module")
+def browser(chromium_installed):
+    with sync_api.sync_playwright() as pw:
+        b = pw.chromium.launch()
         yield b
         b.close()
 
 
 def test_every_gate_the_harness_publishes_passes_on_the_committed_site(
-    browser, monkeypatch, tmp_path
+    chromium_installed, monkeypatch, tmp_path
 ):
     """The harness, run exactly as `python3 scripts/qa_site.py` runs it — through the
     __main__ guard, in a real chromium, against the committed pages over HTTP.
@@ -102,8 +115,8 @@ def test_every_gate_the_harness_publishes_passes_on_the_committed_site(
     animation, the loop's seam. One FAIL is one broken claim, and the exit code is 0 only
     when there are none.
 
-    The `browser` fixture is requested only so that this skips, rather than errors, on a
-    machine where chromium was never installed; the run below launches its own.
+    `chromium_installed` is requested only so that this skips, rather than errors, on a
+    machine where chromium was never installed; the run below launches its own browser.
     """
     monkeypatch.setattr(sys, "argv", ["qa_site.py", "--out", str(tmp_path)])
     with pytest.raises(SystemExit) as ex:
