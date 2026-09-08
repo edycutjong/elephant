@@ -10,6 +10,12 @@ on:
     paths:
       - "site/**"
       - ".github/workflows/pages.yml"
+  # release.yml tags from the commit subjects AFTER a push, so a deploy triggered by that same
+  # push would stamp the PREVIOUS release and sit one version behind forever. Re-deploying when
+  # release finishes closes that: the tag exists by then, and the footer corrects itself.
+  workflow_run:
+    workflows: ["release"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -29,6 +35,29 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
+
+      # The footer shows the current release. It is stamped HERE rather than at render time,
+      # because a page cannot render its own version: release.yml derives the tag from the
+      # commits in the push that produced the page, so at render time the tag does not exist
+      # yet, and the job that gates the rendered output against its templates clones shallow
+      # with no tags at all. Rendering it would either fail there or race the release workflow
+      # for the answer.
+      #
+      # So the committed HTML keeps the words "latest release" — correct at any moment, and the
+      # fallback if this step finds nothing — and the deploy substitutes the real tag over it.
+      - name: Stamp the current release into the footer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="$(gh release view --json tagName -q .tagName 2>/dev/null || true)"
+          if [ -n "${TAG:-}" ]; then
+            sed -i "s|>latest release<|>${TAG}<|g" site/index.html
+            echo "stamped ${TAG} into the footer"
+          else
+            echo "no published release yet — the footer keeps its label"
+          fi
+
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
