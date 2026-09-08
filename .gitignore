@@ -34,7 +34,11 @@ data/pairs.json
 
 # kitchen guard — specs/, submission/ and assets/ live one level up and must never
 # enter this repo. /publish copies selected artifacts into docs/, never into these.
-/assets/
+# Exception: assets/fonts-src/ is a build input, not kitchen. subset_fonts.py cuts the
+# served fonts from it, and its --check gate re-cuts and compares bytes — with the sources
+# ignored, that gate iterates zero files and passes trivially on the runner.
+/assets/*
+!/assets/fonts-src/
 /specs/
 /submission/
 _ideas/
