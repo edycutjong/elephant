@@ -91,7 +91,9 @@ def browser():
         b.close()
 
 
-def test_every_gate_the_harness_publishes_passes_on_the_committed_site(monkeypatch, tmp_path):
+def test_every_gate_the_harness_publishes_passes_on_the_committed_site(
+    browser, monkeypatch, tmp_path
+):
     """The harness, run exactly as `python3 scripts/qa_site.py` runs it — through the
     __main__ guard, in a real chromium, against the committed pages over HTTP.
 
@@ -99,6 +101,9 @@ def test_every_gate_the_harness_publishes_passes_on_the_committed_site(monkeypat
     the contrast floor, the mobile height budget, the reduced-motion state, the deck's stage
     animation, the loop's seam. One FAIL is one broken claim, and the exit code is 0 only
     when there are none.
+
+    The `browser` fixture is requested only so that this skips, rather than errors, on a
+    machine where chromium was never installed; the run below launches its own.
     """
     monkeypatch.setattr(sys, "argv", ["qa_site.py", "--out", str(tmp_path)])
     with pytest.raises(SystemExit) as ex:
