@@ -209,7 +209,7 @@ changed this project's entire mechanism: **[FEEDBACK.md](FEEDBACK.md)**.
 |---|---|
 | Live run wall clock | **29.4 s** — 800 swaps of one token, 8 calls, clean path · **10.0 s** — the 8-token watchlist |
 | **Credits used** | **0** — keyless, with every CMC env var explicitly unset |
-| Tests | **79** (74 offline, 5 live) |
+| Tests | **81** (76 offline, 5 live) |
 | Regression tests named for the defect they pin | 12 |
 | **Property-based verification of `split()`** | **2,000 generated tapes, 0 failing** |
 | Malformed-response boundary cases | 6 |
@@ -284,7 +284,7 @@ python3 scripts/split_tape.py --json run.json      # the watchlist, full result 
 ```bash
 make install     # dev deps (pytest, hypothesis, ruff, pip-audit) + the chromium the QA gates drive
 make lint        # ruff check + format check
-make test        # 74 offline tests, coverage gated at 100%, no internet
+make test        # 76 offline tests, coverage gated at 100%, no internet
 make test-live   # 5 tests against the real CoinMarketCap contract
 make demo        # the judged capability, live, no key
 make bench       # deterministic p50/p95 over the captured tape
@@ -298,7 +298,7 @@ make ci          # lint + test + audit + check
 | Layer | Tool | Status |
 |---|---|---|
 | Code quality | ruff (check + format) | ✅ |
-| Unit testing | pytest, 74 offline tests | ✅ |
+| Unit testing | pytest, 76 offline tests | ✅ |
 | Property testing | hypothesis, 2,000 cases | ✅ |
 | Live contract testing | pytest `-m live` against real CMC | ✅ |
 | Security (SAST) | CodeQL | ✅ |

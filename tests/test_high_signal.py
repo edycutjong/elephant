@@ -758,3 +758,60 @@ def test_a_holder_count_that_does_not_answer_returns_none_and_never_raises(respo
         assert st.holders_count("0xabc") is None
     finally:
         st.get = real
+
+
+def test_a_dropped_connection_is_retried_as_throttling_not_raised_as_a_traceback(monkeypatch):
+    """Observed live 2026-09-08, page 3 of an 8-page keyless run.
+
+    `http.client.RemoteDisconnected` — "Remote end closed connection without response" — ended
+    the run with a stack trace. It subclasses ConnectionResetError and BadStatusLine, so it is
+    an OSError but NOT a urllib URLError, and it fell straight through the `except
+    (URLError, TimeoutError, ValueError)` clause that was meant to catch exactly this.
+
+    Dropping the connection is how the anonymous tier expresses load when it does not send 429
+    or 500. So it belongs on the same backoff, and once retries are spent it has to be
+    reported as throttling — which is what makes it eligible for the partial-window path and
+    for exit 75 instead of a traceback in front of a judge.
+    """
+    import http.client
+
+    assert not issubclass(http.client.RemoteDisconnected, urllib.error.URLError), (
+        "the whole defect: it is not a URLError, which is why the old clause missed it"
+    )
+
+    attempts = {"n": 0}
+
+    def always_dropped(req, timeout=None):
+        attempts["n"] += 1
+        raise http.client.RemoteDisconnected("Remote end closed connection without response")
+
+    monkeypatch.setattr(split_tape.time, "sleep", lambda s: None)
+    monkeypatch.setattr(split_tape.urllib.request, "urlopen", always_dropped)
+    for v in ALL_KEY_VARS:
+        monkeypatch.delenv(v, raising=False)
+
+    d = split_tape.get("/v1/dex/tokens/transactions", address="0xdead")
+
+    assert "_err" in d, "returned, never raised"
+    assert d["_throttled"] is True, "a dropped connection is congestion, so exit 75 applies"
+    assert "RemoteDisconnected" in d["_err"], "and the message names what actually happened"
+    assert attempts["n"] == split_tape.RETRIES + 1, "it was retried on the backoff, not failed once"
+
+
+def test_malformed_json_is_not_retried_because_retrying_cannot_fix_it(monkeypatch):
+    """The other side of that clause: a body that will not parse is a contract problem, and
+    spending a judge's 15 s + 30 s + 60 s backoff on it is worse than saying so at once."""
+    attempts = {"n": 0}
+
+    def bad_json(req, timeout=None):
+        attempts["n"] += 1
+        return io.BytesIO(b"<html>not json</html>")
+
+    monkeypatch.setattr(split_tape.time, "sleep", lambda s: None)
+    monkeypatch.setattr(split_tape.urllib.request, "urlopen", bad_json)
+    for v in ALL_KEY_VARS:
+        monkeypatch.delenv(v, raising=False)
+
+    d = split_tape.get("/v1/dex/tokens/transactions", address="0xdead")
+    assert "_err" in d and not d.get("_throttled")
+    assert attempts["n"] == 1, "tried once, not four times"

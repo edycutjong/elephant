@@ -24,6 +24,7 @@ Verified fields (live, 2026-09-03), /v1/dex/tokens/transactions:
 
 import argparse
 import contextlib
+import http.client
 import json
 import os
 import sys
@@ -181,7 +182,39 @@ def get(path, retries=RETRIES, **params):
                 file=sys.stderr,
             )
             time.sleep(wait)
-        except (urllib.error.URLError, TimeoutError, ValueError) as e:
+        except ValueError as e:
+            # Malformed JSON is a contract problem, not congestion. Retrying cannot fix it and
+            # spending a judge's backoff on it is worse than saying so immediately.
+            return {"_err": f"{type(e).__name__}: {e}"}
+        except (
+            http.client.RemoteDisconnected,
+            http.client.IncompleteRead,
+            ConnectionResetError,
+        ) as e:
+            # The server accepted the connection and then dropped it mid-request. Observed
+            # live 2026-09-08 on page 3 of an 8-page keyless run: RemoteDisconnected, "Remote
+            # end closed connection without response", which ended the run with a traceback.
+            # It subclasses ConnectionResetError and BadStatusLine, so it is an OSError but
+            # NOT a urllib URLError, and it fell through the clause below.
+            #
+            # This one IS congestion — it is how the anonymous tier behaves under load when it
+            # does not send 429 or 500 — so it earns the same backoff and the same _throttled
+            # flag, which makes it eligible for the partial-window path and for exit 75.
+            last = f"{type(e).__name__}: {e}"
+            if attempt == retries:
+                return {"_err": last, "_throttled": True}
+            wait = BACKOFF_S * (2**attempt)
+            print(
+                f"    connection dropped ({type(e).__name__}) — waiting {wait}s "
+                f"(attempt {attempt + 1}/{retries})",
+                file=sys.stderr,
+            )
+            time.sleep(wait)
+        except (urllib.error.URLError, TimeoutError, http.client.HTTPException, OSError) as e:
+            # Never reached the host: DNS failure, refused, timed out. That is the caller's
+            # network or a real outage, and it is NOT a rate limit. Flagging it as throttling
+            # would let a broken environment exit 75 and be waved through as "try again",
+            # which is the same conflation FEEDBACK.md documents CMC making with HTTP 500.
             return {"_err": f"{type(e).__name__}: {e}"}
     return {"_err": last, "_throttled": True}
 

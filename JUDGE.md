@@ -50,7 +50,7 @@ Full annotated transcript with the receipt: **[DEMO.md](DEMO.md)**.
 | API calls | 8 |
 | **Credits used** | **0** — keyless `/public-api` surface |
 | Credentials | none; run with every CMC env var explicitly unset |
-| Tests | **79** (74 offline, 5 live), 15 named after the defect they pin |
+| Tests | **81** (76 offline, 5 live), 15 named after the defect they pin |
 | **Property verification** | **2,000 generated tapes, 0 failing** — `split()` never violated six invariants |
 | Aggregation latency | p50 **0.026 ms** (p95 0.026 ms, n=200) |
 | Live fetch latency | p50 **1,403 ms** (p95 17,474 ms — one iteration sat through a throttle backoff) |
@@ -70,7 +70,7 @@ wallet 97.9% / 99.3% on both sides) and GME (2.9% / 3.7% — actually balanced).
 ```bash
 python3 scripts/split_tape.py --address 0x00000000efe302beaa2b3e6e1b18d08d69a9012a --symbol AUSD --pages 8 --json ausd.json   # the headline
 python3 scripts/split_tape.py                    # the watchlist, live, keyless
-make test                                        # 74 offline tests, 100% of scripts/
+make test                                        # 76 offline tests, 100% of scripts/
 make test-live                                   # 5 tests against the real CMC contract
 pytest tests/test_high_signal.py -k invariants --hypothesis-show-statistics   # the 2,000
 ```
