@@ -34,7 +34,7 @@ def main():
     ap.add_argument("--pages", type=int, default=1)
     a = ap.parse_args()
 
-    surface = "keyed endpoint (escape hatch)" if api_key()[0] else "keyless endpoint"
+    surface = "keyed endpoint (escape hatch)" if api_key() else "keyless endpoint"
     print(f"capturing {a.symbol} from the live {surface}...")
     swaps, meta = pull_swaps(a.address, a.platform, a.pages)
     if meta["error"]:

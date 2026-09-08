@@ -425,7 +425,7 @@ def test_default_path_sends_no_key_and_uses_the_public_surface(monkeypatch):
     for var in ALL_KEY_VARS:
         monkeypatch.delenv(var, raising=False)
     seen = _capture_request(monkeypatch)
-    assert split_tape.api_key() == (None, None)
+    assert split_tape.api_key() is None and split_tape.api_key_var() is None
     assert split_tape.active_base() == split_tape.BASE
     assert "_err" not in split_tape.get("/v1/dex/tokens/transactions", address="0xdead")
     assert seen["url"].startswith(split_tape.BASE + "/v1/dex/tokens/transactions?")
@@ -445,7 +445,7 @@ def test_an_exported_key_is_sent_as_the_pro_header_to_the_keyed_base(monkeypatch
         monkeypatch.delenv(v, raising=False)
     monkeypatch.setenv(var, "not-a-real-key")
     seen = _capture_request(monkeypatch)
-    assert split_tape.api_key() == ("not-a-real-key", var)
+    assert split_tape.api_key() == "not-a-real-key" and split_tape.api_key_var() == var
     assert split_tape.active_base() == split_tape.BASE_KEYED
     split_tape.get("/v1/dex/tokens/transactions", address="0xdead")
     assert seen["url"].startswith(split_tape.BASE_KEYED + "/v1/dex/tokens/transactions?")
@@ -535,7 +535,7 @@ def test_keyed_escape_hatch_reaches_the_keyed_endpoint_when_a_key_is_exported():
     2026-09-07: one of three identical keyed calls came back `credit_count: 0`). The receipt
     mirrors the envelope rather than asserting a price CMC does not always charge.
     """
-    key, var = split_tape.api_key()
+    key, var = split_tape.api_key(), split_tape.api_key_var()
     if not key:
         pytest.skip("no CMC key exported — the keyless default is the tested path")
     swaps, meta = pull_swaps(UNI, pages=1)

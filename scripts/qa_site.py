@@ -279,7 +279,9 @@ def check_static(path, name):
     old_name = "elephant" + "-tracks"  # split so this file is not itself a hit for the old name
     ok(f"{name}: no stale repo name", old_name not in html)
     ext = set()
-    for tag in re.findall(r"<(?:link|script|img)\b[^>]*>", html):
+    # re.I because a tag scan that only matches lower case is a scan with a hole in it,
+    # even when this generator only ever emits lower case.
+    for tag in re.findall(r"<(?:link|script|img)\b[^>]*>", html, flags=re.I):
         if 'rel="canonical"' in tag or 'rel="preconnect"' in tag:
             continue
         m = re.search(r'(?:src|href)="(https?://[^"]+)"', tag)

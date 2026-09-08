@@ -60,23 +60,40 @@ WATCHLIST = [
 
 
 def api_key():
-    """The optional escape hatch: (key, variable name), or (None, None) when no key is exported.
+    """The optional escape hatch: the key itself, or None when none is exported.
 
     Read from the environment at CALL time, never cached at import and never read from disk,
     so a shell with every variable unset is guaranteed to send nothing. The judged path is
     keyless and this is what keeps it so; a key is for a reader whose IP the anonymous tier
     has throttled, and it is never a precondition.
+
+    The return value goes into a request header and nowhere else. Anything a human reads —
+    the mode line, the throttle advice, the receipt — asks api_key_var() instead.
     """
     for var in KEY_VARS:
         value = os.environ.get(var, "").strip()
         if value:
-            return value, var
-    return None, None
+            return value
+    return None
+
+
+def api_key_var():
+    """The NAME of the variable a key was read from, or None when running keyless.
+
+    This is the half that is safe to print, and every message that needs to say whether the
+    run was keyed uses it: a transcript names the variable, never its value. Keeping the name
+    on a separate path from the secret is also what makes that property checkable — there is
+    no longer any flow, real or apparent, from the key to stdout.
+    """
+    for var in KEY_VARS:
+        if os.environ.get(var, "").strip():
+            return var
+    return None
 
 
 def active_base():
     """The base URL the next call will use: the keyless surface unless a key is exported."""
-    return BASE_KEYED if api_key()[0] else BASE
+    return BASE_KEYED if api_key() else BASE
 
 
 def describe_http_error(e):
@@ -131,7 +148,7 @@ def get(path, retries=RETRIES, **params):
     Any 429 or 5xx is treated as transient; a 4xx other than 429 is permanent and returns
     immediately, because retrying a 400 only wastes the judge's time.
     """
-    key, _ = api_key()
+    key = api_key()
     url = (BASE_KEYED if key else BASE) + path + "?" + urllib.parse.urlencode(params)
     headers = {"Accept": "application/json"}
     if key:
@@ -173,9 +190,9 @@ def throttle_advice(first_error):
     tier, name both ways CMC reports it, and give the two ways through. The key is offered as
     an escape hatch and described as one — the default path is keyless and stays keyless.
     """
-    key, var = api_key()
+    var = api_key_var()
     waits = " + ".join(f"{BACKOFF_S * 2**i} s" for i in range(RETRIES))
-    if key:
+    if var:
         return (
             f"\nno token produced a split — CoinMarketCap throttled every fetch on the KEYED "
             f"endpoint (${var} is exported).\n\n"
@@ -213,7 +230,7 @@ def pull_swaps(address, platform="ethereum", pages=1):
     genuinely had no swaps — the tool blamed the token for an infrastructure failure.
     """
     seen, out, cursor, fetched, err, stalled = set(), [], None, 0, None, False
-    throttled, credits, keyed = False, 0, api_key()[0] is not None
+    throttled, credits, keyed = False, 0, api_key() is not None
     for _ in range(pages):
         q = {"platform": platform, "address": address, "limit": PAGE}
         if cursor:
@@ -384,10 +401,10 @@ def main():
 
     targets = [(a.symbol, a.address)] if a.address else WATCHLIST
     started = time.time()
-    key, key_var = api_key()
+    key_var = api_key_var()
     # The mode is printed on the first line and on the last, so a run can never pass off
     # keyed output as the keyless default: "keyless" is a claim the transcript has to earn.
-    mode = f"keyed via ${key_var} (escape hatch — the default is keyless)" if key else "keyless"
+    mode = f"keyed via ${key_var} (escape hatch — the default is keyless)" if key_var else "keyless"
     print(f"splitting the tape — {mode}, {a.pages} page(s) x {PAGE} swaps per token\n")
     print(
         f"{'token':7}{'swaps':>7}{'avg buy $':>12}{'avg sell $':>12}{'ticket':>9}"
@@ -431,12 +448,12 @@ def main():
     if rows and throttled:
         hatch = (
             f"unset {key_var} to fall back to the keyless surface"
-            if key
+            if key_var
             else f"export a free key from {KEY_URL} as CMC_API_KEY to bypass it"
         )
         print(
             f"\n  note: {len(throttled)} token(s) missing above — CoinMarketCap's "
-            f"{'keyed' if key else 'anonymous'} tier throttled them ({', '.join(throttled)}). "
+            f"{'keyed' if key_var else 'anonymous'} tier throttled them ({', '.join(throttled)}). "
             f"Wait a few minutes and re-run, or {hatch}."
         )
 
@@ -503,10 +520,10 @@ def main():
             "credits_used": credits,
             "auth": (
                 f"X-CMC_PRO_API_KEY from ${key_var} — keyed escape hatch, not the default path"
-                if key
+                if key_var
                 else "none — CoinMarketCap keyless /public-api surface"
             ),
-            "endpoint": f"{BASE_KEYED if key else BASE}/v1/dex/tokens/transactions",
+            "endpoint": f"{BASE_KEYED if key_var else BASE}/v1/dex/tokens/transactions",
             "pages_per_token": a.pages,
             "platform": a.platform,
             "page_size": PAGE,
@@ -542,7 +559,7 @@ def main():
         with open(a.json, "w") as fh:
             json.dump(payload, fh, indent=2, sort_keys=True)
         unit = "credit" if credits == 1 else "credits"
-        cost = f"{credits} {unit} — keyed via ${key_var}" if key else "0 credits — keyless"
+        cost = f"{credits} {unit} — keyed via ${key_var}" if key_var else "0 credits — keyless"
         print(f"\nwrote {a.json}  ({elapsed:.1f}s wall clock, {cost})")
 
 
