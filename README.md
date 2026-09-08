@@ -326,7 +326,11 @@ frame; the one loop on the page must collapse and recover exactly once per cycle
 velocity across its seam. The suite drives the whole harness — `tests/test_qa_site.py` runs it
 against the committed pages, and against a page built to fail so that every gate is shown able
 to fail. Those tests skip where chromium is absent, which is why the browser gates are a local
-gate and not a CI one: GitHub's runners install no browser.
+gate and not a CI one. Installing a browser on the runner was tried and measured (#7): 228 of the
+229 gates pass on ubuntu, and the mobile height budget fails there by 9 px — the landing page
+shapes to 8,966 px on macOS and 9,009 px on ubuntu, against 34 px of headroom. That is a
+text-shaping difference between platforms, and a budget is not something to widen until a runner
+fits inside it.
 
 ---
 
