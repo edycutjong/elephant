@@ -158,14 +158,14 @@ demo, and it is why the backoff exists — see the limitations below.
 
 | | Count |
 |---|---|
-| Total tests | **36** (31 offline, 5 live) |
+| Total tests | **39** (34 offline, 5 live) |
 | Regression tests, each named for the defect it pins | 10 |
 | Property-based verification of `split()` | **2,000 generated tapes, 0 failing** |
 | Malformed-response boundary cases | 6 |
 | Coverage of `scripts/split_tape.py` | 94% (the uncovered remainder is transport-error branches) |
 
 ```bash
-make test        # 31 offline tests, no network
+make test        # 34 offline tests, no network
 make test-live   # 5 tests against the real CMC contract
 ```
 

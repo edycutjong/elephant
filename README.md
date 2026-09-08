@@ -154,12 +154,29 @@ Full derivation, including every failure mode and the deliberate non-architectur
 
 ## 🏆 CoinMarketCap Integration
 
-| Endpoint | Used for | Key? |
-|---|---|---|
-| `/public-api/v1/dex/tokens/transactions` | per-swap side, USD value, maker address | ❌ none |
-| `/public-api/v4/dex/spot-pairs/latest` | universe enumeration | ❌ none |
-| `/public-api/v4/dex/pairs/quotes/latest` | liquidity context | ❌ none |
-| `/v1/dex/holders/count` | offline holder series (not on the demo path) | ✅ |
+| Endpoint | Used for | Key? | Called from |
+|---|---|---|---|
+| `/public-api/v1/dex/tokens/transactions` | per-swap side, USD value, maker address — **the engine** | ❌ none | [`scripts/split_tape.py`](scripts/split_tape.py) |
+| `/public-api/v4/dex/spot-pairs/latest` | enumerating a token universe, to choose what to split | ❌ none | [`scripts/sweep_universe.py`](scripts/sweep_universe.py) |
+| `/public-api/v4/dex/pairs/quotes/latest` | evaluated and **rejected** — its `24h_buy_volume` / `24h_sell_volume` are the aggregates this project exists to argue against | ❌ none | *nothing — see below* |
+| `/v1/dex/holders/count` | a daily holder-count series, collected privately | ✅ Startup | *nothing here — the collector is not part of this repo* |
+
+Both `Called from` gaps are deliberate and worth stating plainly, because a table of endpoint
+names proves nothing on its own:
+
+- **`pairs/quotes/latest`** returns volume and trade count per side, which is where this project
+  started. The sweep in [FEEDBACK.md §2](FEEDBACK.md) showed that at flat net flow the ticket
+  ratio those fields produce *is* the count ratio — the same quantity measured twice. It is listed
+  because rejecting it is a finding, not because we call it.
+- **`holders/count`** needs a key and runs on a daily cron, so it is neither keyless nor
+  reproducible from a clone. It informs nothing on the judged path and its output is not here.
+
+Everything else is runnable right now, with no key:
+
+```bash
+make sweep    # /v4/dex/spot-pairs/latest  -> a universe, ~9 s, 0 credits
+make demo     # /v1/dex/tokens/transactions -> the split
+```
 
 ### Why only CoinMarketCap
 
@@ -182,7 +199,7 @@ changed this project's entire mechanism: **[FEEDBACK.md](FEEDBACK.md)**.
 |---|---|
 | Live run wall clock | **29.4 s** — 800 swaps of one token, 8 calls, clean path · **10.0 s** — the 8-token watchlist |
 | **Credits used** | **0** — keyless, with every CMC env var explicitly unset |
-| Tests | **36** (31 offline, 5 live) |
+| Tests | **39** (34 offline, 5 live) |
 | Regression tests named for the defect they pin | 10 |
 | **Property-based verification of `split()`** | **2,000 generated tapes, 0 failing** |
 | Malformed-response boundary cases | 6 |
@@ -257,7 +274,7 @@ python3 scripts/split_tape.py --json run.json      # the watchlist, full result 
 ```bash
 make install     # dev deps (pytest, hypothesis, ruff, pip-audit)
 make lint        # ruff check + format check
-make test        # 31 offline tests with coverage, no network
+make test        # 34 offline tests with coverage, no network
 make test-live   # 5 tests against the real CoinMarketCap contract
 make demo        # the judged capability, live, no key
 make bench       # deterministic p50/p95 over the captured tape
@@ -271,7 +288,7 @@ make ci          # lint + test + audit + check
 | Layer | Tool | Status |
 |---|---|---|
 | Code quality | ruff (check + format) | ✅ |
-| Unit testing | pytest, 31 offline tests | ✅ |
+| Unit testing | pytest, 34 offline tests | ✅ |
 | Property testing | hypothesis, 2,000 cases | ✅ |
 | Live contract testing | pytest `-m live` against real CMC | ✅ |
 | Security (SAST) | CodeQL | ✅ |

@@ -654,10 +654,10 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
       <table class="api">
         <thead><tr><th>endpoint</th><th>used for</th><th>key</th></tr></thead>
         <tbody>
-          <tr class="engine"><td><code>/public-api/v1/dex/tokens/transactions</code></td><td><b>The engine.</b> Per-swap <span class="mono">tp</span>, <span class="mono">v</span>, <span class="mono">ma</span>; cursor pagination via <span class="mono">data.lastId</span>.</td><td>none</td></tr>
-          <tr><td><code>/public-api/v4/dex/spot-pairs/latest</code></td><td>Universe enumeration for the sweep that found the four tokens above.</td><td>none</td></tr>
-          <tr><td><code>/public-api/v4/dex/pairs/quotes/latest</code></td><td>Liquidity context. Its <span class="mono">24h_buy_volume</span> / <span class="mono">24h_sell_volume</span> are deliberately <em>not</em> used — see below.</td><td>none</td></tr>
-          <tr><td><code>/v1/dex/holders/count</code></td><td>Offline holder-count collector. Not on the judged path.</td><td>Startup</td></tr>
+          <tr class="engine"><td><code>/public-api/v1/dex/tokens/transactions</code></td><td><b>The engine.</b> Per-swap <span class="mono">tp</span>, <span class="mono">v</span>, <span class="mono">ma</span>; cursor via <span class="mono">data.lastId</span>. Run <span class="mono">make demo</span>.</td><td>none</td></tr>
+          <tr><td><code>/public-api/v4/dex/spot-pairs/latest</code></td><td>Enumerates the token universe — the step that picks what to split. Run <span class="mono">make sweep</span>.</td><td>none</td></tr>
+          <tr><td><code>/public-api/v4/dex/pairs/quotes/latest</code></td><td>Rejected, so nothing calls it: at flat net flow its buy/sell volume ratio is only the count ratio again.</td><td>none</td></tr>
+          <tr><td><code>/v1/dex/holders/count</code></td><td>Daily holder-count series. Keyed, on a cron, and not in this repository.</td><td>Startup</td></tr>
         </tbody>
       </table>
       </div>
@@ -725,7 +725,7 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
       <a href="{{repo}}/blob/main/docs/proof/bingo.json" {{blank}}><div class="f">docs/proof/bingo.json{{ext}}</div><div class="m">{{bingo.symbol}} · {{bingo.swaps}} swaps · {{bingo.captured_short}}</div></a>
       <a href="{{repo}}/blob/main/docs/proof/{{churn.file}}" {{blank}}><div class="f">docs/proof/{{churn.file}}{{ext}}</div><div class="m">{{churn.symbol}} · {{churn.swaps}} swaps · {{churn.captured_short}}</div></a>
     </div>
-    <p class="muted" style="margin-top:14px;font-size:.9rem">Also in the repo: 36 tests (31 offline, 5 against the live contract), a 2,000-case property check that the maker share can never escape its own denominator, and a CI job that runs the real split on every push with no secret configured.</p>
+    <p class="muted" style="margin-top:14px;font-size:.9rem">Also in the repo: 39 tests (34 offline, 5 against the live contract), a 2,000-case property check that the maker share can never escape its own denominator, and a CI job that runs the real split on every push with no secret configured.</p>
   </div>
 </section>
 

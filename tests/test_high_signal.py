@@ -24,6 +24,7 @@ from hypothesis import strategies as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import split_tape  # noqa: E402
+import sweep_universe  # noqa: E402
 from split_tape import DUST_USD, MIN_SIDE_SWAPS, pull_swaps, split  # noqa: E402
 
 UNI = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"
@@ -547,3 +548,72 @@ def test_keyed_escape_hatch_reaches_the_keyed_endpoint_when_a_key_is_exported():
     assert meta["error"] is None, f"keyed fetch via ${var} failed: {meta['error']}"
     assert swaps and any(s.get("tp") in ("buy", "sell") for s in swaps)
     assert isinstance(meta["credits"], int) and meta["credits"] >= 0
+
+
+# ── the sweep: the step that chooses what to split ───────────────────────────────────
+
+
+def _pair(sym, addr, scroll=None):
+    row = {
+        "base_asset_symbol": sym,
+        "base_asset_contract_address": addr,
+        "name": f"{sym}/WETH",
+        "quote": [{"liquidity": 1.0, "volume_24h": 2.0}],
+    }
+    if scroll:
+        row["scroll_id"] = scroll
+    return row
+
+
+def test_sweep_follows_the_envelope_cursor_and_never_repeats_a_token(monkeypatch):
+    """The pagination trap, pinned.
+
+    `spot-pairs/latest` puts `scroll_id` on the response ENVELOPE, not on the last row — the
+    same shape that cost a day on `data.lastId` in pull_swaps. A sweep that reads the cursor
+    off the row stops after one page and silently returns a short universe, which looks like
+    a thin DEX rather than like a bug. The same token also trades in several pairs on one
+    DEX, so without dedup by contract address a universe is mostly duplicates.
+    """
+    pages = [
+        {"data": [_pair("AAA", "0xaaa"), _pair("BBB", "0xbbb")], "scroll_id": "p2"},
+        {"data": [_pair("BBB", "0xBBB"), _pair("CCC", "0xccc")]},  # repeat, different case
+    ]
+    seen_params = []
+
+    def fake_get(path, retries=3, **params):
+        seen_params.append(params)
+        return pages[len(seen_params) - 1] if len(seen_params) <= len(pages) else {"data": []}
+
+    monkeypatch.setattr(sweep_universe, "get", fake_get)
+    tokens, err = sweep_universe.sweep_source(1, "uniswap-v3", per_source=10)
+
+    assert err is None
+    assert [t["symbol"] for t in tokens] == ["AAA", "BBB", "CCC"], "deduped by address, in order"
+    assert "scroll_id" not in seen_params[0], "the first page asks for no cursor"
+    assert seen_params[1]["scroll_id"] == "p2", "the second page uses the ENVELOPE's cursor"
+
+
+def test_sweep_returns_a_throttle_instead_of_blaming_the_dex(monkeypatch):
+    """A rate-limited source and a source with no pairs are different facts.
+
+    The error travels back to the caller rather than raising, so the run reports six good
+    sources and one throttled one instead of dying on the seventh — and so the note column
+    can say which it was.
+    """
+    monkeypatch.setattr(
+        sweep_universe, "get", lambda path, retries=3, **p: {"_err": "HTTP 429 (error 1022)"}
+    )
+    tokens, err = sweep_universe.sweep_source(1, "uniswap-v3", per_source=10)
+    assert tokens == []
+    assert "429" in err, "the caller is told it was throttled, not that the DEX was empty"
+
+
+def test_sweep_stops_at_per_source_even_when_the_page_is_bigger(monkeypatch):
+    """A budget is a budget: the API's page size does not get to decide the universe size."""
+    monkeypatch.setattr(
+        sweep_universe,
+        "get",
+        lambda path, retries=3, **p: {"data": [_pair(f"T{i}", f"0x{i:040x}") for i in range(100)]},
+    )
+    tokens, _ = sweep_universe.sweep_source(1, "uniswap-v3", per_source=7)
+    assert len(tokens) == 7

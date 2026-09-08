@@ -1,4 +1,4 @@
-.PHONY: help install lint test test-live bench bench-live demo seed site audit check ci all
+.PHONY: help install lint test test-live bench bench-live demo sweep seed site audit check ci all
 
 help:  ## show targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n",$$1,$$2}'
@@ -23,6 +23,9 @@ bench-live:  ## benchmark the real keyless fetch, p50/p95
 
 demo:  ## the judged capability, live, zero config, no key
 	python3 scripts/split_tape.py
+
+sweep:  ## enumerate a token universe from the keyless DEX pair listing
+	python3 scripts/sweep_universe.py
 
 seed:  ## re-capture the offline replay tape from the live API
 	python3 scripts/seed.py
