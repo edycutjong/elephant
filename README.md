@@ -16,7 +16,6 @@ for <strong>0 credits</strong> and no API key. <strong>One wallet was 62.0% of t
 $25,459,824 in 12 swaps — into 212 buying wallets, while net flow read
 +2.1%.</strong> <a href="DEMO.md">Receipt →</a></p>
 
-<p><a href="https://elephant.edycu.dev">elephant.edycu.dev</a> · <a href="https://elephant.edycu.dev/pitch/">pitch deck</a> · <a href="https://youtu.be/I1yOhXSutAk">2:45 demo</a></p>
 
 <br/>
 
@@ -26,12 +25,13 @@ $25,459,824 in 12 swaps — into 212 buying wallets, while net flow read
 [![Pitch Deck](https://img.shields.io/badge/📊_Pitch-Deck-f59e0b?style=for-the-badge)](https://elephant.edycu.dev/pitch/)
 [![Live Run Receipt](https://img.shields.io/badge/🧾_Live_Run-Receipt-FFB020?style=for-the-badge)](DEMO.md)
 [![API Feedback](https://img.shields.io/badge/📮_CMC_API-Feedback-4C9AFF?style=for-the-badge)](FEEDBACK.md)
+[![BUIDL](https://img.shields.io/badge/🐘_BUIDL-48344-3861FB?style=for-the-badge)](https://dorahacks.io/buidl/48344)
 [![Built for Build with CMC](https://img.shields.io/badge/DoraHacks-Build_with_CMC-8b5cf6?style=for-the-badge)](https://dorahacks.io/hackathon/coinmarketcap-api-202609/detail)
 
 <br/>
 
 ![Python](https://img.shields.io/badge/Python_3.11-3776AB?style=flat&logo=python&logoColor=white)
-![CoinMarketCap](https://img.shields.io/badge/CoinMarketCap_DEX_API-17181B?style=flat&logo=coinmarketcap&logoColor=white)
+![CoinMarketCap](https://img.shields.io/badge/CoinMarketCap_DEX_API-3861FB?style=flat&logo=coinmarketcap&logoColor=white)
 ![No API key](https://img.shields.io/badge/API_key-not_required-4C9AFF?style=flat)
 ![Zero dependencies](https://img.shields.io/badge/runtime_deps-zero-5E6C80?style=flat)
 [![CI](https://github.com/edycutjong/elephant/actions/workflows/ci.yml/badge.svg)](https://github.com/edycutjong/elephant/actions/workflows/ci.yml)
