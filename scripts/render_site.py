@@ -25,6 +25,7 @@ PROOF = BUILD / "docs" / "proof"
 SITE = BUILD / "site"
 
 REPO = "https://github.com/edycutjong/elephant"
+VIDEO = "https://youtu.be/I1yOhXSutAk"  # 2:45 demo — a real keyless run, captioned
 SITE_URL = "https://elephant.edycu.dev"
 EVENT = "https://dorahacks.io/hackathon/coinmarketcap-api-202609/detail"
 VERSION = "v0.0.0-dev"
@@ -599,6 +600,7 @@ def main():
             "bench.live_p95": f"{live['p95']:,.0f}",
             "repo": REPO,
             "site": SITE_URL,
+            "video": VIDEO,
             "blank": BLANK,
             "ext": EXT,
             "gh_icon": gh_icon(),

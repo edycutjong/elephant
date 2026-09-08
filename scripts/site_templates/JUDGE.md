@@ -127,4 +127,5 @@ returns.
 | **The tests** | [`tests/test_high_signal.py`](tests/test_high_signal.py) |
 | **Landing page** | [elephant.edycu.dev]({{site}}) — the receipt beside its raw swaps |
 | **Pitch deck** | [elephant.edycu.dev/pitch]({{site}}/pitch/) — 11 slides, arrow keys |
-| Video · BUIDL | not yet published — see the README for current status |
+| **Demo video** | [youtu.be/I1yOhXSutAk]({{video}}) — 2:45, captioned. The run at 0:39 is real time, not sped up |
+| BUIDL | not yet published — see the README for current status |

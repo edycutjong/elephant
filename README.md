@@ -12,11 +12,12 @@ for <strong>0 credits</strong> and no API key. <strong>One wallet was 62.0% of t
 $25,459,824 in 12 swaps — into 212 buying wallets, while net flow read
 +2.1%.</strong> <a href="DEMO.md">Receipt →</a></p>
 
-<p><a href="https://elephant.edycu.dev">elephant.edycu.dev</a> · <a href="https://elephant.edycu.dev/pitch/">pitch deck</a></p>
+<p><a href="https://elephant.edycu.dev">elephant.edycu.dev</a> · <a href="https://elephant.edycu.dev/pitch/">pitch deck</a> · <a href="https://youtu.be/I1yOhXSutAk">2:45 demo</a></p>
 
 <br/>
 
 [![Judge Guide](https://img.shields.io/badge/⚖️_Start-Here-06b6d4?style=for-the-badge)](JUDGE.md)
+[![Demo video](https://img.shields.io/badge/▶️_2:45-Demo_video-FF0000?style=for-the-badge)](https://youtu.be/I1yOhXSutAk)
 [![Landing page](https://img.shields.io/badge/🐘_elephant.edycu.dev-Landing-0B0E14?style=for-the-badge)](https://elephant.edycu.dev)
 [![Live Run Receipt](https://img.shields.io/badge/🧾_Live_Run-Receipt-FFB020?style=for-the-badge)](DEMO.md)
 [![API Feedback](https://img.shields.io/badge/📮_CMC_API-Feedback-4C9AFF?style=for-the-badge)](FEEDBACK.md)
