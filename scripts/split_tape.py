@@ -424,13 +424,20 @@ def main():
     print("-" * 98)
 
     rows, errors, stalled_any, tapes, credits = [], [], False, {}, 0
+    partials = []
     for sym, addr in targets:
         swaps, meta = pull_swaps(addr, a.platform, a.pages)
         tapes[sym] = swaps
         stalled_any = stalled_any or meta.get("stalled", False)
         credits += meta.get("credits", 0)
-        if meta["error"]:
-            # An API failure is an API failure. Never let it read as a property of the token.
+        # An API failure is an API failure — never let it read as a property of the token.
+        # But an error that arrived AFTER some pages landed is not the same as one that
+        # arrived before any did. Discarding three good pages because the fourth was
+        # throttled turns a recoverable rate limit into a failed run, and the rate limit is
+        # per IP: it is the most likely thing to happen to a reader on their first attempt.
+        # A smaller window, stated, is a result. Only an empty one is an error.
+        partial = bool(meta["error"]) and bool(swaps)
+        if meta["error"] and not swaps:
             errors.append((sym, meta["error"], meta.get("throttled", False)))
             print(f"{sym:7}{'':>7}   API error — {_clip(meta['error'], 69)}")
             continue
@@ -440,14 +447,33 @@ def main():
             continue
         r["symbol"], r["address"], r["swaps"] = sym, addr, len(swaps)
         r["platform"], r["pages"] = a.platform, meta["pages"]
+        r["partial"] = partial
+        r["pages_requested"] = a.pages
+        if partial:
+            partials.append((sym, meta["pages"], a.pages, meta.get("throttled", False)))
         rows.append(r)
         note = "" if r["confidence"] == "ok" else f"⚠ {r['confidence']}"
+        if partial:
+            short = f"partial: {meta['pages']}/{a.pages} pages"
+            note = f"{note} · {short}" if note else f"⚠ {short}"
         print(
             f"{sym:7}{r['swaps']:7}{r['avg_buy']:12,.2f}{r['avg_sell']:12,.2f}"
             f"{r['ticket_ratio']:8.1f}x{r['buy_wallets']:8}{r['sell_wallets']:8}"
             f"{r['buy_top_share'] * 100:8.1f}%{r['sell_top_share'] * 100:9.1f}%"
             f"{r['net_flow_pct']:9.1f}%  {note}"
         )
+
+    if partials:
+        # Said out loud, not left to the note column. A number computed over 500 swaps is not
+        # the same claim as one computed over 800, and the reader has to be told which they
+        # are looking at before they quote it.
+        for sym, got, want, was_throttled in partials:
+            why = "throttled" if was_throttled else "the fetch stopped early"
+            print(
+                f"\n  note: {sym} was measured over {got} of {want} requested page(s) — "
+                f"{why}. The split below is that shorter window, not "
+                f"{'an' if str(want)[0] in '8' else 'a'} {want}-page one."
+            )
 
     if stalled_any and a.pages > 1:
         print(
@@ -543,6 +569,10 @@ def main():
             ),
             "endpoint": f"{BASE_KEYED if key_var else BASE}/v1/dex/tokens/transactions",
             "pages_per_token": a.pages,
+            "partial_rows": [
+                {"symbol": s, "pages_fetched": g, "pages_requested": w, "throttled": th}
+                for s, g, w, th in partials
+            ],
             "platform": a.platform,
             "page_size": PAGE,
             "rule": {

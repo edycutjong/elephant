@@ -617,3 +617,94 @@ def test_sweep_stops_at_per_source_even_when_the_page_is_bigger(monkeypatch):
     )
     tokens, _ = sweep_universe.sweep_source(1, "uniswap-v3", per_source=7)
     assert len(tokens) == 7
+
+
+# ── a throttle that arrives late must not discard the pages that already landed ──────
+
+
+def _paged_envelope(n_swaps, last_id=None):
+    """One page of alternating buy/sell swaps, each with a distinct maker."""
+    swaps = ",".join(
+        f'{{"tx":"0x{i}","lgid":"{i}","tp":"{"buy" if i % 2 else "sell"}",'
+        f'"v":"{100 + i}","ma":"0xmaker{i}"}}'
+        for i in range(n_swaps)
+    )
+    tail = f',"lastId":"{last_id}"' if last_id else ""
+    return f'{{"data":{{"swaps":[{swaps}]{tail}}}}}'.encode()
+
+
+def test_a_throttle_after_page_one_keeps_page_one_instead_of_reporting_a_failure(
+    monkeypatch, capsys, tmp_path
+):
+    """The rate limit is per IP, so it is the likeliest thing to meet a reader on a first run.
+
+    Until 2026-09-08 any error discarded the whole token: `pull_swaps` broke out of the page
+    loop and returned the swaps it had, and main() threw them away and printed "API error".
+    Three good pages became a failed run because the fourth was throttled. A smaller window is
+    a result; only an empty one is a failure — and the short window has to be stated, because
+    a number over 200 swaps is not the same claim as one over 800.
+    """
+    calls = {"n": 0}
+
+    def flaky(req, timeout=None):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return io.BytesIO(_paged_envelope(40, last_id="page2"))
+        raise urllib.error.HTTPError(req.full_url, 429, "Too Many Requests", {}, None)
+
+    for v in ALL_KEY_VARS:
+        monkeypatch.delenv(v, raising=False)
+    monkeypatch.setattr(split_tape.time, "sleep", lambda s: None)
+    monkeypatch.setattr(split_tape.urllib.request, "urlopen", flaky)
+    out_json = tmp_path / "r.json"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "split_tape.py",
+            "--address",
+            "0xdead",
+            "--symbol",
+            "X",
+            "--pages",
+            "4",
+            "--json",
+            str(out_json),
+        ],
+    )
+    split_tape.main()
+    out = capsys.readouterr().out
+
+    assert "API error" not in out, "a late throttle is not a failed token"
+    assert "40" in out, "the 40 swaps that did land are measured"
+    assert "partial" in out, "the row is marked partial"
+    assert "1 of 4 requested page(s)" in out, "the run states how short the window was"
+    assert "throttled" in out, "and why it was short"
+
+    receipt = json.loads(out_json.read_text())
+    assert receipt["partial_rows"], "a JSON consumer must not read a partial window as complete"
+    assert receipt["partial_rows"][0] == {
+        "symbol": "X",
+        "pages_fetched": 1,
+        "pages_requested": 4,
+        "throttled": True,
+    }
+
+
+def test_a_throttle_before_any_page_is_still_a_failure_not_an_empty_result(monkeypatch, capsys):
+    """The other half of the same rule. With nothing fetched there is nothing to report, and
+    the run must exit 75 rather than print a confident row built on zero swaps."""
+
+    def always_limited(req, timeout=None):
+        raise urllib.error.HTTPError(req.full_url, 429, "Too Many Requests", {}, None)
+
+    for v in ALL_KEY_VARS:
+        monkeypatch.delenv(v, raising=False)
+    monkeypatch.setattr(split_tape.time, "sleep", lambda s: None)
+    monkeypatch.setattr(split_tape.urllib.request, "urlopen", always_limited)
+    monkeypatch.setattr(sys, "argv", ["split_tape.py", "--address", "0xdead", "--symbol", "X"])
+
+    with pytest.raises(SystemExit) as ex:
+        split_tape.main()
+    assert ex.value.code == 75, "EX_TEMPFAIL — nothing landed, so this is a rate limit not a row"
+    assert "API error" in capsys.readouterr().out
