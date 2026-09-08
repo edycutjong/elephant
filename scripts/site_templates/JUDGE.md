@@ -122,7 +122,7 @@ returns.
 |---|---|
 | **Run it** | [DEMO.md](DEMO.md) — annotated transcript + receipt |
 | **How it works** | [ARCHITECTURE.md](ARCHITECTURE.md) — derived from the code, not the design notes |
-| **API feedback for CMC** | [FEEDBACK.md](FEEDBACK.md) — five dated, evidenced findings |
+| **API feedback for CMC** | [FEEDBACK.md](FEEDBACK.md) — six dated, evidenced findings |
 | **The product** | [`scripts/split_tape.py`](scripts/split_tape.py) — 200 lines, stdlib only |
 | **The tests** | [`tests/test_high_signal.py`](tests/test_high_signal.py) |
 | **Landing page** | [elephant.edycu.dev]({{site}}) — the receipt beside its raw swaps |

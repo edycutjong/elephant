@@ -192,7 +192,7 @@ Remove CoinMarketCap and you would need a multi-chain swap indexer, a per-DEX po
 balance indexer, a wallet-labelling pipeline and a symbol→contract mapping service — five separate
 systems — to recompute what one endpoint returns in one call.
 
-We also wrote up **five dated, evidenced findings** for the CMC product team, including the one that
+We also wrote up **six dated, evidenced findings** for the CMC product team, including the one that
 changed this project's entire mechanism: **[FEEDBACK.md](FEEDBACK.md)**.
 
 ---
@@ -362,7 +362,14 @@ elephant/
 - [x] Maker attribution per side — the top wallet's share, distribution and top ten
 - [x] Landing page and pitch deck (static, dated receipts) at elephant.edycu.dev
 - [x] Quadrant map on maker share: distribution · accumulation · wash-shaped · churn
-- [ ] Hosted live tool with a token input — needs a CORS proxy, **not built**
+- [ ] Hosted live tool with a token input — **not built, and not just for lack of time.**
+      CMC omits `Access-Control-Allow-Origin` ([FEEDBACK.md §6](FEEDBACK.md)), so a browser
+      cannot call it and a server-side hop is required. That hop then puts every visitor
+      behind one IP against a **per-IP** anonymous rate limit — the same limit that turns
+      CI red when several jobs start at once. Run from a clone, every reader gets their own
+      quota; run from a shared proxy, the tenth reader in a minute gets a 429. A hosted tool
+      would be *less* reliable than the CLI unless it carried our key, which the CLI
+      deliberately does not need.
 
 ---
 

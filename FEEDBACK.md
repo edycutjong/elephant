@@ -122,6 +122,38 @@ Not a bug — a packaging note. The endpoint is visible in the catalogue and ret
 in use, so the plan requirement is discovered at integration time rather than at read time.
 Marking plan requirements on the endpoint listing would save the round trip.
 
+## 6. Three of the four CORS headers are sent; `Access-Control-Allow-Origin` is not
+
+**Observed 2026-09-08 · `/public-api/v1/dex/tokens/transactions` · severity: medium**
+
+A successful keyless `200` carries three CORS headers and omits the only one browsers gate on:
+
+```
+access-control-allow-headers:  origin, accept, DNT, ... X-CMC_PRO_API_KEY
+access-control-allow-methods:  OPTIONS, HEAD, GET, POST, PUT, DELETE, PATCH
+access-control-max-age:        600
+access-control-allow-origin:   (absent)
+```
+
+The `OPTIONS` preflight answers `200` with the same three. So the preflight succeeds, the
+request goes out, the response arrives — and the browser then discards it, because without
+`Access-Control-Allow-Origin` there is no origin it is allowed to hand the body to. Verified
+from a real page rather than inferred from the headers: a `fetch()` for that exact URL from
+`https://elephant.edycu.dev` fails with `TypeError: Failed to fetch`.
+
+**Why it matters:** this does not read like a policy decision to keep browsers out. A service
+that meant to refuse cross-origin reads would not publish `allow-methods`, `allow-headers` and
+a ten-minute `max-age` — that is a CORS configuration with one header missing. The cost falls
+on exactly the integrations the keyless surface seems designed to invite: anyone building a
+web page on it must stand up a server-side hop whose only job is to copy the response and add
+one header, which also puts every one of their visitors behind a single IP against a per-IP
+anonymous rate limit.
+
+**What would fix it:** `Access-Control-Allow-Origin: *` on the `/public-api` surface. The data
+is already public and unauthenticated; the header would let it be read where it is already
+being served. If the concern is the keyed surface, sending it only on `/public-api` would be
+enough to unblock every keyless browser integration without touching authenticated traffic.
+
 ---
 
 ## What is genuinely excellent, and worth protecting
