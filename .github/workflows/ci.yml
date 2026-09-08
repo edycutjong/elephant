@@ -32,9 +32,13 @@ jobs:
       - uses: actions/setup-python@v7
         with: { python-version: '${{ matrix.python-version }}' }
       - run: pip install -r requirements-dev.txt
+      # The browser QA harness (scripts/qa_site.py) is driven by tests/test_qa_site.py, which
+      # skips where chromium is absent. Install it so those gates run here too, rather than
+      # only on the machine of whoever last remembered to run them.
+      - run: python3 -m playwright install --with-deps chromium
       # Offline only. The live tests run in the live-api job below, where a CMC
       # rate limit is diagnosed as a rate limit rather than reported as a test failure.
-      - run: pytest -q -m "not live" --cov=scripts --cov-report=term-missing
+      - run: pytest -q -m "not live" --cov=scripts --cov-report=term-missing --cov-fail-under=100
 
   audit:
     name: "Stage 2 · Dependency audit"
