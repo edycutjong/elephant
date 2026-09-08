@@ -1,0 +1,16 @@
+# Coverage settings for the GitHub runner, which has no browser.
+#
+# scripts/qa_site.py drives chromium through playwright. Installing a browser on the runner
+# was tried and measured: 228 of its 229 gates pass on ubuntu, and the mobile height budget
+# fails there by 9 px — the landing page shapes to 8,966 px on macOS and 9,009 px on ubuntu,
+# against 34 px of headroom. That is a text-shaping difference between platforms, and a budget
+# is not something to widen until a runner fits inside it. So the browser gates stay a local
+# gate, and its tests skip here.
+#
+# What is NOT acceptable is letting that turn the 100% into a number nobody enforces. This
+# config omits the one browser-dependent file so CI can gate every other line at 100% — 707
+# statements it genuinely runs — while `make test` locally still gates all 1,195 including the
+# harness. Neither number is aspirational: each is enforced where it can actually be measured.
+[run]
+concurrency = thread,greenlet
+omit = scripts/qa_site.py

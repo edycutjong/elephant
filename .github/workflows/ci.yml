@@ -34,7 +34,12 @@ jobs:
       - run: pip install -r requirements-dev.txt
       # Offline only. The live tests run in the live-api job below, where a CMC
       # rate limit is diagnosed as a rate limit rather than reported as a test failure.
-      - run: pytest -q -m "not live" --cov=scripts --cov-report=term-missing
+      # --cov-fail-under=100 with the browser-dependent file omitted (see .coveragerc.ci):
+      # the runner has no chromium, so it gates every line it can actually execute rather than
+      # measuring coverage and gating on nothing. `make test` locally gates all of it.
+      - run: >-
+          pytest -q -m "not live" --cov=scripts --cov-report=term-missing
+          --cov-config=.coveragerc.ci --cov-fail-under=100
 
   audit:
     name: "Stage 2 · Dependency audit"
