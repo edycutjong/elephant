@@ -35,7 +35,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from split_tape import PAGE, api_key_var, get  # noqa: E402
+from split_tape import PAGE, get, is_keyed  # noqa: E402
 
 # (network_id, dex_slug, label) — every tuple verified live 2026-09-03 and re-verified
 # 2026-09-08. A slug that returns zero rows is a slug for a DEX that is not on that network,
@@ -102,8 +102,8 @@ def main():
     ap.add_argument("--json", help="write the universe to this path")
     a = ap.parse_args()
 
-    key_var = api_key_var()
-    mode = f"keyed via ${key_var} (escape hatch — the default is keyless)" if key_var else "keyless"
+    keyed = is_keyed()
+    mode = "keyed (escape hatch — the default is keyless)" if keyed else "keyless"
     print(f"sweeping the universe — {mode}, {len(SOURCES)} source(s) x {a.per_source} tokens\n")
     print(f"{'network':10}{'dex':17}{'tokens':>8}  note")
     print("-" * 62)
@@ -122,7 +122,7 @@ def main():
     elapsed = time.time() - started
     print(
         f"\n{len(universe)} distinct token(s) across {len(SOURCES)} source(s) "
-        f"({elapsed:.1f}s wall clock, {'keyless' if not key_var else 'keyed'})"
+        f"({elapsed:.1f}s wall clock, {'keyed' if keyed else 'keyless'})"
     )
     if errors:
         print(f"  note: {len(errors)} source(s) errored — see the note column above")
@@ -141,9 +141,9 @@ def main():
     if a.json:
         payload = {
             "swept_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "auth": "none — CoinMarketCap keyless /public-api surface"
-            if not key_var
-            else f"keyed via ${key_var}",
+            "auth": "keyed — escape hatch, not the default path"
+            if keyed
+            else "none — CoinMarketCap keyless /public-api surface",
             "endpoint": "https://pro-api.coinmarketcap.com/public-api/v4/dex/spot-pairs/latest",
             "cursor": "scroll_id on the response envelope",
             "sources": [{"network_id": n, "dex_slug": d, "platform": p} for n, d, p in SOURCES],

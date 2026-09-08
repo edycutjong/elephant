@@ -91,6 +91,17 @@ def api_key_var():
     return None
 
 
+def is_keyed():
+    """Whether a key is exported — a bool, carrying neither the key nor the variable's name.
+
+    split_tape names the variable on purpose: a keyed run has to announce itself well enough
+    that it can never be passed off as the keyless default, and "$CMC_API_KEY" is how it does
+    that. Nothing else in the repository needs that much detail, and a caller that only wants
+    to print "keyless" should not have to touch a credential-shaped value to find out.
+    """
+    return api_key_var() is not None
+
+
 def active_base():
     """The base URL the next call will use: the keyless surface unless a key is exported."""
     return BASE_KEYED if api_key() else BASE
