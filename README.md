@@ -131,6 +131,8 @@ ticket ratio stays as a supporting column.
 pull the swaps  →  split by side  →  attribute each side to its makers  →  rank by concentration
 ```
 
+<img src="docs/assets/architecture.png" alt="Elephant Tracks architecture: two keyless CoinMarketCap endpoints feed a stdlib-only Python pipeline — sweep_universe.py picks a token, then get, pull_swaps, split, _confidence and main turn raw swaps into a ranked row — emitting a table, a JSON receipt, and a site rendered from those receipts." width="100%">
+
 No server, no database, no cache, no model. The product is one arithmetic operation applied to data
 only CoinMarketCap publishes, so everything that is not the fetch or the arithmetic was removed.
 
