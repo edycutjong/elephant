@@ -23,9 +23,15 @@ permissions:
   pages: write
   id-token: write
 
+# Serialised, NOT cancel-in-progress. A push fires this workflow, and release.yml then fires it
+# a second time through workflow_run so the footer can be stamped with the tag that push
+# created. With cancel-in-progress the second run killed the first mid-deploy, which is
+# harmless — the survivor deploys, and it is the one with the correct tag — but it left a
+# trail of "cancelled" runs in the Actions history that reads exactly like a broken pipeline.
+# Queueing instead costs one extra deploy per push and keeps the history honest.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
