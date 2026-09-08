@@ -203,13 +203,13 @@ changed this project's entire mechanism: **[FEEDBACK.md](FEEDBACK.md)**.
 |---|---|
 | Live run wall clock | **29.4 s** — 800 swaps of one token, 8 calls, clean path · **10.0 s** — the 8-token watchlist |
 | **Credits used** | **0** — keyless, with every CMC env var explicitly unset |
-| Tests | **39** (34 offline, 5 live) |
-| Regression tests named for the defect they pin | 10 |
+| Tests | **72** (67 offline, 5 live) |
+| Regression tests named for the defect they pin | 12 |
 | **Property-based verification of `split()`** | **2,000 generated tapes, 0 failing** |
 | Malformed-response boundary cases | 6 |
 | Aggregation latency | p50 **0.026 ms**, p95 0.026 ms (n=200) |
 | Live fetch latency | p50 **1,403 ms**, p95 17,474 ms (n=8, includes one throttle backoff) |
-| Coverage of `scripts/split_tape.py` | 94% — the remainder is transport-error branches |
+| Coverage of `scripts/` | **100%** of 1,195 statements — `make test` fails under it |
 
 **The 2,000 is the number worth reading.** Coverage says we ran the lines we wrote. The property
 test says that across 2,000 generated tapes `split()` never violated six invariants: the ratio
@@ -276,15 +276,15 @@ python3 scripts/split_tape.py --json run.json      # the watchlist, full result 
 ## 🧪 Testing & CI
 
 ```bash
-make install     # dev deps (pytest, hypothesis, ruff, pip-audit)
+make install     # dev deps (pytest, hypothesis, ruff, pip-audit) + the chromium the QA gates drive
 make lint        # ruff check + format check
-make test        # 34 offline tests with coverage, no network
+make test        # 67 offline tests, coverage gated at 100%, no internet
 make test-live   # 5 tests against the real CoinMarketCap contract
 make demo        # the judged capability, live, no key
 make bench       # deterministic p50/p95 over the captured tape
 make bench-live  # p50/p95 over the real keyless fetch
 make site        # re-render the landing page, the deck and JUDGE.md from docs/proof/*.json
-python3 scripts/qa_site.py   # 227 measured gates on the web surfaces (needs playwright + pillow)
+python3 scripts/qa_site.py   # 229 measured gates on the web surfaces (needs playwright + pillow)
 make check       # refuse to ship a placeholder, or a page that drifted from its receipts
 make ci          # lint + test + audit + check
 ```
@@ -292,7 +292,7 @@ make ci          # lint + test + audit + check
 | Layer | Tool | Status |
 |---|---|---|
 | Code quality | ruff (check + format) | ✅ |
-| Unit testing | pytest, 34 offline tests | ✅ |
+| Unit testing | pytest, 67 offline tests | ✅ |
 | Property testing | hypothesis, 2,000 cases | ✅ |
 | Live contract testing | pytest `-m live` against real CMC | ✅ |
 | Security (SAST) | CodeQL | ✅ |
@@ -313,7 +313,7 @@ be typed in by hand, none can be a placeholder, and none can drift from the run 
 the landing page and the judge guide cannot disagree, because they are the same render.
 
 **The web surfaces are measured, not eyeballed.** `scripts/qa_site.py` drives both pages in headless
-Chromium and runs 227 gates: no horizontal overflow at 375 / 768 / 1440, every link and image
+Chromium and runs 229 gates: no horizontal overflow at 375 / 768 / 1440, every link and image
 resolves, a page height budget on phones, every text node — SVG text included — at or above WCAG AA contrast as actually painted, with
 opacity flattened onto the background (minimum 5.65:1, gated against regression), the social card
 measured from its own PNG header and description lengths counted, heading levels, prose-link
@@ -323,7 +323,10 @@ rendering with every external request blocked, `prefers-reduced-motion` leaving 
 animations, and the animation itself sampled with the clock paused — the staged split must hold
 the summed bar alone first, never reverse, never snap, and end in exactly the reduced-motion
 frame; the one loop on the page must collapse and recover exactly once per cycle with zero
-velocity across its seam. It is not in CI because CI has no browser; run it before a publish.
+velocity across its seam. The suite drives the whole harness — `tests/test_qa_site.py` runs it
+against the committed pages, and against a page built to fail so that every gate is shown able
+to fail. Those tests skip where chromium is absent, which is why the browser gates are a local
+gate and not a CI one: GitHub's runners install no browser.
 
 ---
 
@@ -336,12 +339,17 @@ elephant/
 │   ├── bench.py                      p50/p95, network and aggregation timed apart
 │   ├── seed.py                       capture a tape for replay (NOT the demo path)
 │   ├── render_site.py                renders site/ and JUDGE.md from docs/proof/*.json — no hand-typed numbers
-│   ├── qa_site.py                    227 measured gates on the two web surfaces (Playwright)
+│   ├── qa_site.py                    229 measured gates on the two web surfaces (Playwright)
 │   ├── site_templates/               landing.html, deck.html, JUDGE.md — {{token}} slots, fail if unfilled
 │   └── check_submission_readiness.py placeholder scanner
 ├── tests/
 │   ├── test_split.py                 the maths + live contract tests
-│   └── test_high_signal.py           regressions · property · boundary
+│   ├── test_high_signal.py           regressions · property · boundary
+│   ├── test_fetch_contract.py        what get() and pull_swaps() promise their callers
+│   ├── test_cli.py                   every main(), through its own __main__ guard
+│   ├── test_render_site.py           the generator, against the real receipts
+│   ├── test_qa_site.py               the browser harness — and a page built to fail it
+│   └── test_published_counts.py      the test count on five surfaces vs the suite
 ├── site/                             generated: landing page (/) and deck (/pitch), dated snapshots
 ├── data/seed_tape.json               a recording. Nothing judged reads it.
 ├── docs/proof/                       ausd/shfl/bingo/gme.json receipts, live_run.json, benchmarks
