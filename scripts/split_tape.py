@@ -460,7 +460,14 @@ def main():
     elapsed = time.time() - started
     if not rows:
         if errors and throttled:
-            sys.exit(throttle_advice(errors[0][1]))
+            # EX_TEMPFAIL. A rate limit is a temporary condition of the caller's IP, not a
+            # defect in this tool or a change in CMC's contract, and the two must not exit
+            # alike: CI runs this against the keyless surface from a shared runner address
+            # that other people are also spending the anonymous quota on. A caller that
+            # cannot tell "try again in a minute" from "this is broken" will either ignore
+            # a real break or treat one as noise.
+            print(throttle_advice(errors[0][1]), file=sys.stderr)
+            sys.exit(75)
         if errors:
             sys.exit(f"\nno token produced a split — every fetch failed. First: {errors[0][1]}")
         sys.exit("no token produced a two-sided split")

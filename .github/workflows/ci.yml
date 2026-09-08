@@ -80,10 +80,22 @@ jobs:
       # No secret is configured for this job, deliberately: the judged path is keyless,
       # so this runs on forks and PRs too. If CMC changes the contract, it breaks here
       # rather than in front of a judge.
+      # Exit 75 is EX_TEMPFAIL: CMC throttled this runner. The keyless surface is rate-limited
+      # per IP and GitHub's runners share theirs with everyone else on the platform, so a red
+      # badge there would report someone else's traffic as our breakage. Every other non-zero
+      # exit still fails the job, which is the point of running this live at all.
       - name: Split a real tape with no credentials
         run: |
+          set +e
           python3 scripts/split_tape.py \
             --address 0x1f9840a85d5af5bf1d1762f925bdaddc4201f984 \
             --symbol UNI --pages 1
+          code=$?
+          set -e
+          if [ "$code" -eq 75 ]; then
+            echo "::warning title=CMC throttled this runner::Anonymous tier rate-limited the shared runner IP (EX_TEMPFAIL). Not a product failure — re-run to confirm."
+            exit 0
+          fi
+          exit "$code"
       - name: Live contract tests
         run: pytest -q -m live

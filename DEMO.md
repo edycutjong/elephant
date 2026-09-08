@@ -25,6 +25,12 @@ call to the keyed endpoint. The key is an escape hatch, never a requirement: the
 taken with every CMC variable unset, and a keyed run announces itself on its first line, its last
 line and in its receipt, so it can never pass as this one.
 
+An exhausted quota exits **75** (`EX_TEMPFAIL`), separately from the exit 1 that any other
+failure gives. A rate limit is a fact about the caller's IP at that minute, not about this tool
+or about CMC's contract, and a script — or a CI job — that cannot tell the two apart will either
+learn to ignore a real break or start treating one as noise. Our own CI reports exit 75 as a
+warning and fails on everything else.
+
 ## Receipt — live run, 2026-09-07T07:00:52Z
 
 | | |

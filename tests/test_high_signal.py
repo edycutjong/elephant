@@ -201,6 +201,9 @@ def test_exhausted_throttle_explains_itself_instead_of_dumping_a_truncated_body(
     a JSON body cut off mid-string — as the only explanation. 105 seconds of waiting for a
     message a judge could not act on. The failure must name the tier, both ways CMC reports
     it, and the two ways through: wait, or export a free key. Never a raw body.
+
+    It must also exit 75 (EX_TEMPFAIL) rather than 1, so a caller can tell a rate limit from a
+    genuine break without parsing prose.
     """
     body = (
         b'{"status":{"timestamp":"2026-09-07T10:00:00.000Z","error_code":"1022",'
@@ -225,8 +228,10 @@ def test_exhausted_throttle_explains_itself_instead_of_dumping_a_truncated_body(
     monkeypatch.setattr(sys, "argv", ["split_tape.py", "--address", "0xdead", "--symbol", "X"])
     with pytest.raises(SystemExit) as ex:
         split_tape.main()
-    msg, out = str(ex.value), capsys.readouterr().out
+    captured = capsys.readouterr()
+    msg, out = captured.err, captured.out
 
+    assert ex.value.code == 75, "EX_TEMPFAIL — a rate limit is not the exit code of a real break"
     assert "HTTP 429 (error 1022)" in msg, "the status and CMC's own error code, parsed"
     assert "anonymous" in msg and "per IP" in msg, "name the tier"
     assert "HTTP 500" in msg, "name the other way the same throttle is reported"
