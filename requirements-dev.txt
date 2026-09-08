@@ -9,3 +9,4 @@ hypothesis>=6.167.1
 playwright>=1.57.0
 pillow>=11.1.0
 numpy>=1.26.4
+fonttools[woff]>=4.55

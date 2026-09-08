@@ -11,8 +11,10 @@ Not three suites — three tests, each answering a question coverage cannot.
     a broken response into a number.
 """
 
+import html
 import io
 import json
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -815,3 +817,62 @@ def test_malformed_json_is_not_retried_because_retrying_cannot_fix_it(monkeypatc
     d = split_tape.get("/v1/dex/tokens/transactions", address="0xdead")
     assert "_err" in d and not d.get("_throttled")
     assert attempts["n"] == 1, "tried once, not four times"
+
+
+# ── the served fonts must actually contain the glyphs the pages render ───────────────
+
+
+def test_every_rendered_character_is_in_the_served_fonts(tmp_path):
+    """The fonts are cut down to what these two pages use, which makes them 45 KiB smaller —
+    and makes it possible to ship a page whose copy has drifted past its own font.
+
+    A missing glyph does not show a tofu box; the browser silently falls back to a system
+    font for that one character, so the failure looks like slightly wrong kerning and nobody
+    notices. This asserts coverage directly against each woff2's cmap.
+    """
+    from fontTools.ttLib import TTFont
+
+    root = Path(__file__).resolve().parents[1]
+    pages = (root / "site" / "index.html", root / "site" / "pitch" / "index.html")
+
+    rendered = set()
+    for page in pages:
+        t = page.read_text(encoding="utf-8")
+        t = re.sub(r"<(script|style)\b.*?</\1>", " ", t, flags=re.S | re.I)
+        rendered |= set(html.unescape(re.sub(r"<[^>]+>", " ", t)))
+    rendered = {c for c in rendered if c.isprintable() and not c.isspace()}
+    assert len(rendered) > 60, "the pages should render a real alphabet, not a stub"
+
+    # These four have never been in the fonts. The upstream latin subsets of Inter, Inter
+    # Tight and JetBrains Mono ship 229-231 glyphs and none of them includes a Greek sigma,
+    # an arrow or an approximately-equals — verified against assets/fonts-src/, which is the
+    # unmodified upstream file. They have always rendered in a system fallback, before this
+    # subsetting existed and after it. Listing them here is the point: the assertion below is
+    # worthless if it quietly tolerates any miss, and a reader deserves to know which four
+    # characters on these pages are not in the brand typeface.
+    FALLS_BACK_BY_DESIGN = set("Σ→↗≈")
+    rendered -= FALLS_BACK_BY_DESIGN
+
+    for woff2 in sorted((root / "site" / "assets" / "fonts").glob("*.woff2")):
+        covered = set()
+        for table in TTFont(woff2)["cmap"].tables:
+            covered |= {chr(cp) for cp in table.cmap}
+        missing = sorted(rendered - covered)
+        assert not missing, (
+            f"{woff2.name} is missing {len(missing)} rendered character(s): "
+            f"{''.join(missing)!r} — run `make fonts`"
+        )
+
+
+def test_the_served_fonts_are_not_stale_against_the_pages(tmp_path):
+    """`--check` re-cuts into a temp file and compares bytes, so a copy change that adds a
+    glyph fails here rather than shipping a page that quietly falls back."""
+    import subprocess
+
+    root = Path(__file__).resolve().parents[1]
+    r = subprocess.run(
+        [sys.executable, str(root / "scripts" / "subset_fonts.py"), "--check"],
+        capture_output=True,
+        text=True,
+    )
+    assert r.returncode == 0, f"served fonts are stale — run `make fonts`\n{r.stdout}{r.stderr}"

@@ -25,29 +25,29 @@ that is not the fetch or the arithmetic has been removed.
                                     │  raw JSON
                                     ▼
   ┌─────────────────────────────────────────────────────────────┐
-  │  pull_swaps()   paginate by the envelope's data.lastId,      │
-  │                 de-duplicate on (tx, lgid), stop on a stall  │
-  │                 returns (swaps, {pages, error})              │
+  │  pull_swaps()   paginate by the envelope's data.lastId,     │
+  │                 de-duplicate on (tx, lgid), stop on a stall │
+  │                 returns (swaps, {pages, error})             │
   └─────────────────────────────────────────────────────────────┘
                                     │  list[swap]
                                     ▼
   ┌─────────────────────────────────────────────────────────────┐
-  │  split()        THE PRODUCT. Partition on `tp`, then per     │
-  │                 side: Σ`v` per `ma` -> the top wallet's      │
-  │                 share; also mean(`v`), |distinct(`ma`)|,     │
-  │                 ticket ratio, net flow                       │
+  │  split()        THE PRODUCT. Partition on `tp`, then per    │
+  │                 side: Σ`v` per `ma` -> the top wallet's     │
+  │                 share; also mean(`v`), |distinct(`ma`)|,    │
+  │                 ticket ratio, net flow                      │
   └─────────────────────────────────────────────────────────────┘
                                     │  row
                                     ▼
   ┌─────────────────────────────────────────────────────────────┐
-  │  _confidence()  is this row's ratio meaningful at all?       │
-  │                 dust floor + minimum swaps per side          │
+  │  _confidence()  is this row's ratio meaningful at all?      │
+  │                 dust floor + minimum swaps per side         │
   └─────────────────────────────────────────────────────────────┘
                                     │  row + confidence
                                     ▼
   ┌─────────────────────────────────────────────────────────────┐
-  │  main()         rank, apply the published hero rule,         │
-  │                 print the table, optionally emit JSON        │
+  │  main()         rank, apply the published hero rule,        │
+  │                 print the table, optionally emit JSON       │
   └─────────────────────────────────────────────────────────────┘
 ```
 

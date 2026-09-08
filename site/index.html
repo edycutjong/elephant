@@ -34,9 +34,9 @@
 <link rel="preload" href="assets/fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-var.woff2" as="font" type="font/woff2" crossorigin>
 <style>
-@font-face{font-family:'Inter Tight';font-style:normal;font-weight:600 800;font-display:swap;src:url(assets/fonts/inter-tight-latin-var.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-@font-face{font-family:'Inter';font-style:normal;font-weight:400 600;font-display:swap;src:url(assets/fonts/inter-latin-var.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400 600;font-display:swap;src:url(assets/fonts/jetbrains-mono-latin-var.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'Inter Tight';font-style:normal;font-weight:600 800;font-display:swap;src:url(assets/fonts/inter-tight-latin-var.woff2) format('woff2');unicode-range:U+0020-007E, U+00B1, U+00B7, U+00D7, U+00F7, U+03A3, U+2014, U+2026, U+2192-2193, U+2197, U+2212, U+2248;}
+@font-face{font-family:'Inter';font-style:normal;font-weight:400 600;font-display:swap;src:url(assets/fonts/inter-latin-var.woff2) format('woff2');unicode-range:U+0020-007E, U+00B1, U+00B7, U+00D7, U+00F7, U+03A3, U+2014, U+2026, U+2192-2193, U+2197, U+2212, U+2248;}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400 600;font-display:swap;src:url(assets/fonts/jetbrains-mono-latin-var.woff2) format('woff2');unicode-range:U+0020-007E, U+00B1, U+00B7, U+00D7, U+00F7, U+03A3, U+2014, U+2026, U+2192-2193, U+2197, U+2212, U+2248;}
 </style>
 <style>
 /* ── Elephant Tracks design tokens (assets/_tokens.css) ─────────────────────── */
@@ -157,7 +157,7 @@ header.top.scrolled{border-bottom-color:var(--border);background:rgba(11,14,20,.
 .hero{padding:clamp(48px,7vw,96px) 0 clamp(32px,5vw,64px)}
 .hero h1 .line1{display:block;color:var(--muted);font-weight:700}
 .hero h1 .line2{display:block}
-.hero h1 .big{color:var(--elephant);font-feature-settings:var(--num)}
+.hero h1 .big{color:var(--elephant);font-feature-settings:var(--num);display:inline-block;min-width:3.2ch;text-align:left}
 .hero .lede{margin:22px 0 30px;max-width:52ch}
 .cta-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
 .hero-viz{margin-top:clamp(36px,5vw,64px);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:clamp(16px,2.6vw,32px);position:relative;overflow:hidden}
@@ -1316,7 +1316,7 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
       <a href="https://github.com/edycutjong/elephant/blob/main/docs/proof/bingo.json" target="_blank" rel="noopener noreferrer"><div class="f">docs/proof/bingo.json<span class="arrow arrow-ext" aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></div><div class="m">BINGO · 800 swaps · 2026-09-07 07:02:51 UTC</div></a>
       <a href="https://github.com/edycutjong/elephant/blob/main/docs/proof/gme.json" target="_blank" rel="noopener noreferrer"><div class="f">docs/proof/gme.json<span class="arrow arrow-ext" aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></div><div class="m">GME · 800 swaps · 2026-09-07 07:03:48 UTC</div></a>
     </div>
-    <p class="muted" style="margin-top:14px;font-size:.9rem">Also in the repo: 96 tests (91 offline, 5 against the live contract), a 2,000-case property check that the maker share can never escape its own denominator, and a CI job that runs the real split on every push with no secret configured.</p>
+    <p class="muted" style="margin-top:14px;font-size:.9rem">Also in the repo: 110 tests (105 offline, 5 against the live contract), a 2,000-case property check that the maker share can never escape its own denominator, and a CI job that runs the real split on every push with no secret configured.</p>
   </div>
 </section>
 
@@ -1445,7 +1445,10 @@ details.code-more>summary:hover{background:transparent;color:var(--elephant)}
     }
   }
 
-  // count-up on the headline share (static under reduced motion)
+  // Count-up on the headline share (static under reduced motion). The span reserves
+  // its final width in CSS: this element is the LCP element, and letting it grow from
+  // one digit to two reflows the whole headline. Measured 2026-09-08 — those two
+  // reflows were the page's ENTIRE layout shift, 0.0056 of a 0.0056 CLS.
   var big = document.querySelector('[data-count]');
   if (big && !reduce && 'IntersectionObserver' in window) {
     var target = parseInt(big.getAttribute('data-count'), 10), t0 = null, dur = 1100;

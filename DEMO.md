@@ -158,14 +158,14 @@ demo, and it is why the backoff exists — see the limitations below.
 
 | | Count |
 |---|---|
-| Total tests | **96** (91 offline, 5 live) |
+| Total tests | **110** (105 offline, 5 live) |
 | Regression tests, each named for the defect it pins | 12 |
 | Property-based verification of `split()` | **2,000 generated tapes, 0 failing** |
 | Malformed-response boundary cases | 6 |
 | Coverage of `scripts/` | **100%** of 1,195 statements, gated — `make test` fails under 100% |
 
 ```bash
-make test        # 91 offline tests, no internet
+make test        # 105 offline tests, no internet
 make test-live   # 5 tests against the real CMC contract
 ```
 

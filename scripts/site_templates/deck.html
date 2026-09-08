@@ -43,9 +43,9 @@
   /* Vendored CoinMarketCap mark — nominative use, stating what this is built on.
      Inline because the deck loads no external asset and a hotlink would change that. */
   .chip .cmc{vertical-align:-2px;margin-right:6px;opacity:.85}
-@font-face{font-family:'Inter Tight';font-style:normal;font-weight:600 800;font-display:swap;src:url(../assets/fonts/inter-tight-latin-var.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-@font-face{font-family:'Inter';font-style:normal;font-weight:400 600;font-display:swap;src:url(../assets/fonts/inter-latin-var.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
-@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400 600;font-display:swap;src:url(../assets/fonts/jetbrains-mono-latin-var.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'Inter Tight';font-style:normal;font-weight:600 800;font-display:swap;src:url(../assets/fonts/inter-tight-latin-var.woff2) format('woff2');unicode-range:U+0020-007E, U+00B1, U+00B7, U+00D7, U+00F7, U+03A3, U+2014, U+2026, U+2192-2193, U+2197, U+2212, U+2248;}
+@font-face{font-family:'Inter';font-style:normal;font-weight:400 600;font-display:swap;src:url(../assets/fonts/inter-latin-var.woff2) format('woff2');unicode-range:U+0020-007E, U+00B1, U+00B7, U+00D7, U+00F7, U+03A3, U+2014, U+2026, U+2192-2193, U+2197, U+2212, U+2248;}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400 600;font-display:swap;src:url(../assets/fonts/jetbrains-mono-latin-var.woff2) format('woff2');unicode-range:U+0020-007E, U+00B1, U+00B7, U+00D7, U+00F7, U+03A3, U+2014, U+2026, U+2192-2193, U+2197, U+2212, U+2248;}
 </style>
 <style>
 :root{
@@ -457,8 +457,8 @@ a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2px solid 
     </div>
     <div class="metrics">
       <div class="metric"><div class="v">{{ausd.wall}}<span style="font-size:28px"> s</span></div><div class="k">800 swaps · 8 calls · clean run</div></div>
-      <div class="metric"><div class="v">0</div><div class="k">credits · no API key</div></div>
-      <div class="metric"><div class="v">96</div><div class="k">tests · 5 against live CMC</div></div>
+      <div class="metric"><div class="v">110</div><div class="k">credits · no API key</div></div>
+      <div class="metric"><div class="v">110</div><div class="k">tests · 5 against live CMC</div></div>
       <div class="metric"><div class="v">2,000</div><div class="k">property cases · 0 failing</div></div>
       <div class="metric" style="grid-column:1/-1"><div class="v" style="font-size:34px">CI runs the real split</div><div class="k">every push · no secret configured · stdlib only</div></div>
     </div>

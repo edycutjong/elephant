@@ -61,6 +61,9 @@ jobs:
       # The landing page, the deck and JUDGE.md are rendered from docs/proof/*.json. If the
       # committed output is not what the generator produces, a number was edited by hand — fail.
       - run: python3 scripts/render_site.py --check
+      # The served fonts are cut to the glyphs the pages render. If copy changed and
+      # nobody re-cut them, a character silently falls back to a system font.
+      - run: python3 scripts/subset_fonts.py --check
 
   bench:
     name: "Stage 3 · Deterministic benchmark"

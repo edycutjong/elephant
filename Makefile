@@ -1,4 +1,4 @@
-.PHONY: help install lint test test-live bench bench-live demo sweep base-rate seed site audit check ci all
+.PHONY: help install lint test test-live bench bench-live demo sweep base-rate seed site fonts audit check ci all
 
 help:  ## show targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n",$$1,$$2}'
@@ -35,6 +35,10 @@ seed:  ## re-capture the offline replay tape from the live API
 	python3 scripts/seed.py
 
 site:  ## re-render the landing page, the deck and JUDGE.md from docs/proof/*.json
+	python3 scripts/render_site.py
+
+fonts:  ## re-cut the web fonts to the glyphs the pages actually render
+	python3 scripts/subset_fonts.py
 	python3 scripts/render_site.py
 
 audit:  ## dependency + secret audit
