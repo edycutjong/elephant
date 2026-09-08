@@ -1,4 +1,4 @@
-.PHONY: help install lint test test-live bench bench-live demo sweep seed site audit check ci all
+.PHONY: help install lint test test-live bench bench-live demo sweep base-rate seed site audit check ci all
 
 help:  ## show targets
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n",$$1,$$2}'
@@ -27,6 +27,9 @@ demo:  ## the judged capability, live, zero config, no key
 
 sweep:  ## enumerate a token universe from the keyless DEX pair listing
 	python3 scripts/sweep_universe.py
+
+base-rate:  ## measure how often a balanced net flow hides one wallet (slow, keyless)
+	python3 scripts/base_rate.py --tokens 110 --per-source 22 --pages 2 --json docs/proof/base_rate.json
 
 seed:  ## re-capture the offline replay tape from the live API
 	python3 scripts/seed.py

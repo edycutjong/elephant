@@ -1,0 +1,297 @@
+{
+  "auth": "none \u2014 CoinMarketCap keyless /public-api surface",
+  "balanced_rows": [
+    {
+      "net_flow_pct": -0.002,
+      "partial": false,
+      "platform": "ethereum",
+      "side": "buy",
+      "swaps": 200,
+      "symbol": "BAL",
+      "top_share": 0.9985
+    },
+    {
+      "net_flow_pct": -0.854,
+      "partial": false,
+      "platform": "solana",
+      "side": "buy",
+      "swaps": 170,
+      "symbol": "USDT",
+      "top_share": 0.8195
+    },
+    {
+      "net_flow_pct": -0.911,
+      "partial": false,
+      "platform": "solana",
+      "side": "sell",
+      "swaps": 200,
+      "symbol": "MEW",
+      "top_share": 0.6715
+    },
+    {
+      "net_flow_pct": 0.33,
+      "partial": false,
+      "platform": "solana",
+      "side": "sell",
+      "swaps": 200,
+      "symbol": "RAY",
+      "top_share": 0.6528
+    },
+    {
+      "net_flow_pct": -1.691,
+      "partial": false,
+      "platform": "ethereum",
+      "side": "buy",
+      "swaps": 200,
+      "symbol": "USDe",
+      "top_share": 0.5692
+    },
+    {
+      "net_flow_pct": -2.058,
+      "partial": false,
+      "platform": "ethereum",
+      "side": "buy",
+      "swaps": 200,
+      "symbol": "Mog",
+      "top_share": 0.5365
+    },
+    {
+      "net_flow_pct": -1.811,
+      "partial": false,
+      "platform": "solana",
+      "side": "sell",
+      "swaps": 200,
+      "symbol": "ONYX",
+      "top_share": 0.4844
+    },
+    {
+      "net_flow_pct": -0.0,
+      "partial": false,
+      "platform": "ethereum",
+      "side": "buy",
+      "swaps": 94,
+      "symbol": "BULL",
+      "top_share": 0.3442
+    },
+    {
+      "net_flow_pct": -1.865,
+      "partial": false,
+      "platform": "ethereum",
+      "side": "sell",
+      "swaps": 200,
+      "symbol": "ZCHF",
+      "top_share": 0.2567
+    },
+    {
+      "net_flow_pct": -2.042,
+      "partial": false,
+      "platform": "ethereum",
+      "side": "sell",
+      "swaps": 200,
+      "symbol": "LDO",
+      "top_share": 0.255
+    },
+    {
+      "net_flow_pct": 2.773,
+      "partial": false,
+      "platform": "bsc",
+      "side": "sell",
+      "swaps": 200,
+      "symbol": "BNC4",
+      "top_share": 0.2549
+    },
+    {
+      "net_flow_pct": -0.243,
+      "partial": false,
+      "platform": "solana",
+      "side": "buy",
+      "swaps": 200,
+      "symbol": "HYPE",
+      "top_share": 0.2252
+    },
+    {
+      "net_flow_pct": 0.375,
+      "partial": false,
+      "platform": "bsc",
+      "side": "buy",
+      "swaps": 200,
+      "symbol": "LUNA",
+      "top_share": 0.191
+    },
+    {
+      "net_flow_pct": -1.15,
+      "partial": false,
+      "platform": "bsc",
+      "side": "sell",
+      "swaps": 200,
+      "symbol": "BNC",
+      "top_share": 0.18
+    },
+    {
+      "net_flow_pct": -0.598,
+      "partial": false,
+      "platform": "ethereum",
+      "side": "sell",
+      "swaps": 200,
+      "symbol": "Marvin",
+      "top_share": 0.178
+    },
+    {
+      "net_flow_pct": 4.103,
+      "partial": false,
+      "platform": "arbitrum",
+      "side": "sell",
+      "swaps": 200,
+      "symbol": "RAIN",
+      "top_share": 0.1667
+    },
+    {
+      "net_flow_pct": -4.833,
+      "partial": false,
+      "platform": "solana",
+      "side": "sell",
+      "swaps": 200,
+      "symbol": "boden",
+      "top_share": 0.1599
+    },
+    {
+      "net_flow_pct": 0.154,
+      "partial": false,
+      "platform": "ethereum",
+      "side": "buy",
+      "swaps": 200,
+      "symbol": "ADI",
+      "top_share": 0.1541
+    },
+    {
+      "net_flow_pct": -3.242,
+      "partial": false,
+      "platform": "solana",
+      "side": "buy",
+      "swaps": 200,
+      "symbol": "wSOL",
+      "top_share": 0.115
+    },
+    {
+      "net_flow_pct": -0.519,
+      "partial": false,
+      "platform": "bsc",
+      "side": "buy",
+      "swaps": 200,
+      "symbol": "BREW",
+      "top_share": 0.03
+    },
+    {
+      "net_flow_pct": 3.044,
+      "partial": false,
+      "platform": "bsc",
+      "side": "sell",
+      "swaps": 200,
+      "symbol": "BNC4",
+      "top_share": 0.0198
+    },
+    {
+      "net_flow_pct": 2.094,
+      "partial": false,
+      "platform": "bsc",
+      "side": "sell",
+      "swaps": 200,
+      "symbol": "4Stock",
+      "top_share": 0.0194
+    }
+  ],
+  "base_rate": 0.2727272727272727,
+  "base_rate_95ci_wilson": [
+    0.1315,
+    0.4815
+  ],
+  "counts": {
+    "balanced": 22,
+    "concentrated": 6,
+    "measured": 96,
+    "skipped": 14,
+    "trusted": 92
+  },
+  "limitations": [
+    "The population is liquidity-ranked, so this is a base rate among actively traded tokens on major DEXes, not among all tokens.",
+    "Each token is measured over a window of pages x 100 swaps, not 24 hours.",
+    "A wallet is not an entity: the share is a floor when one entity holds many wallets, and inflated when a router pools many users."
+  ],
+  "measured_utc": "2026-09-08T06:31:27Z",
+  "median_top_share_among_balanced": 0.25485288334952166,
+  "method": {
+    "balanced_pct": 5.0,
+    "concentrated_threshold": 0.5,
+    "denominator": "tokens reading balanced that also clear the product's confidence floors",
+    "measured_with": "/v1/dex/tokens/transactions, split by maker address",
+    "pages_per_token": 2,
+    "population": "most liquid pairs on 7 (network, DEX) sources via /v4/dex/spot-pairs/latest"
+  },
+  "skipped": [
+    {
+      "symbol": "bUSD0",
+      "why": "one side empty"
+    },
+    {
+      "symbol": "MEMEGOD",
+      "why": "no swaps"
+    },
+    {
+      "symbol": "B2B",
+      "why": "no swaps"
+    },
+    {
+      "symbol": "DRIPPY",
+      "why": "no swaps"
+    },
+    {
+      "symbol": "MVP",
+      "why": "no swaps"
+    },
+    {
+      "symbol": "MOONCAT",
+      "why": "no swaps"
+    },
+    {
+      "symbol": "IFXAI",
+      "why": "no swaps"
+    },
+    {
+      "symbol": "POCCO",
+      "why": "no swaps"
+    },
+    {
+      "symbol": "PANGYO",
+      "why": "no swaps"
+    },
+    {
+      "symbol": "PFVS",
+      "why": "no swaps"
+    },
+    {
+      "symbol": "XMONEY",
+      "why": "no swaps"
+    },
+    {
+      "symbol": "XMONEY",
+      "why": "no swaps"
+    },
+    {
+      "symbol": "XMONEY",
+      "why": "no swaps"
+    },
+    {
+      "symbol": "TESLA",
+      "why": "no swaps"
+    }
+  ],
+  "sweep_errors": [],
+  "top_share_distribution_among_balanced": {
+    "max": 0.9985176119008017,
+    "p50": 0.25485288334952166,
+    "p75": 0.5364630333394111,
+    "p90": 0.6715445470795408,
+    "p95": 0.8194554718959636,
+    "p99": 0.9985176119008017
+  }
+}

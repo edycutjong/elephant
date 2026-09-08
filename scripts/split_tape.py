@@ -47,6 +47,10 @@ BACKOFF_S = 15  # 15s, 30s, 60s: measured recovery is under a minute
 # named for the defect it pins.
 MIN_SIDE_SWAPS = 5  # SHIB 2026-09-07: a 4-swap side is not an "average ticket"
 DUST_USD = 1.00  # SHIB 2026-09-07: 96 sub-cent sells averaged $0.375 -> a fake 709x
+# The published band for "a dashboard would call this balanced". A module constant, not a
+# local, so base_rate.py measures the same threshold the product selects on — two copies of
+# this number drifting apart would make the base rate a claim about something else.
+BALANCED = 5.0
 
 WATCHLIST = [
     ("PEPE", "0x6982508145454ce325ddbe47a25d4ec3d2311933"),
@@ -580,7 +584,6 @@ def main():
     # flow buyVol ~= sellVol, so avgB/avgS ~= nS/nB — the ticket ratio IS the count ratio,
     # measured twice (median gap 5.8% across 54 flat tokens). Maker share is a second,
     # independent quantity, and it is the one the project is named for.
-    BALANCED = 5.0
     trusted = [r for r in rows if r["confidence"] == "ok"]
     balanced = [r for r in trusted if abs(r["net_flow_pct"]) < BALANCED]
     hero = None
