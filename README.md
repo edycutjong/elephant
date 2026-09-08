@@ -2,6 +2,8 @@
 
 <h1>Elephant Tracks 🐘</h1>
 
+<img src="docs/assets/hero.svg" alt="Elephant Tracks — net flow reads +2.1%, “balanced”, while one wallet is 62.0% of AUSD’s sell side against 212 buying wallets." width="900">
+
 <p><em>The tape says balanced. The split says one wallet and a crowd.</em></p>
 
 <p>Net flow is a sum, and summing is lossy. Elephant Tracks splits the tape back apart —
@@ -19,6 +21,7 @@ $25,459,824 in 12 swaps — into 212 buying wallets, while net flow read
 [![Judge Guide](https://img.shields.io/badge/⚖️_Start-Here-06b6d4?style=for-the-badge)](JUDGE.md)
 [![Demo video](https://img.shields.io/badge/▶️_2:45-Demo_video-FF0000?style=for-the-badge)](https://youtu.be/I1yOhXSutAk)
 [![Landing page](https://img.shields.io/badge/🐘_elephant.edycu.dev-Landing-0B0E14?style=for-the-badge)](https://elephant.edycu.dev)
+[![Pitch Deck](https://img.shields.io/badge/📊_Pitch-Deck-f59e0b?style=for-the-badge)](https://elephant.edycu.dev/pitch/)
 [![Live Run Receipt](https://img.shields.io/badge/🧾_Live_Run-Receipt-FFB020?style=for-the-badge)](DEMO.md)
 [![API Feedback](https://img.shields.io/badge/📮_CMC_API-Feedback-4C9AFF?style=for-the-badge)](FEEDBACK.md)
 [![Built for Build with CMC](https://img.shields.io/badge/DoraHacks-Build_with_CMC-8b5cf6?style=for-the-badge)](https://dorahacks.io/hackathon/coinmarketcap-api-202609/detail)
@@ -30,6 +33,7 @@ $25,459,824 in 12 swaps — into 212 buying wallets, while net flow read
 ![No API key](https://img.shields.io/badge/API_key-not_required-4C9AFF?style=flat)
 ![Zero dependencies](https://img.shields.io/badge/runtime_deps-zero-5E6C80?style=flat)
 [![CI](https://github.com/edycutjong/elephant/actions/workflows/ci.yml/badge.svg)](https://github.com/edycutjong/elephant/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/edycutjong/elephant?sort=semver&color=FFB020)](https://github.com/edycutjong/elephant/releases/latest)
 [![License](https://img.shields.io/badge/License-MIT-FFB020?style=flat)](LICENSE)
 
 </div>
@@ -370,6 +374,23 @@ elephant/
   CLI in this repository.
 - **`/v1/dex/holders/trend/list` is not available on the Startup plan**, so the holder series is
   collected daily by us instead.
+
+---
+
+## 📽️ Demo Materials
+
+| | |
+|---|---|
+| **Demo video** | **[youtu.be/I1yOhXSutAk](https://youtu.be/I1yOhXSutAk)** — 2:45, captioned. The run at 0:39 is a real keyless execution at real speed; nothing is sped up, and the terminal carries the label saying so. |
+| **Landing page** | **[elephant.edycu.dev](https://elephant.edycu.dev)** — the receipt beside its raw swaps. A dated snapshot, and it says so on every number. |
+| **Pitch deck** | **[elephant.edycu.dev/pitch](https://elephant.edycu.dev/pitch/)** — 11 slides, arrow keys, `P` for notes. |
+| **For judges** | **[JUDGE.md](JUDGE.md)** — the 30-second path. |
+| **The receipt** | **[DEMO.md](DEMO.md)** — the live run transcribed, with [`docs/proof/ausd.json`](docs/proof/ausd.json) behind it. |
+
+The video's numbers and the landing page's differ slightly — 61.7% against 62.0% — because the
+800-swap window moved between the two runs. Same wallet, same $25,459,824, same 12 swaps. The video
+says so on camera rather than hiding it: a number that moves with the market is the evidence it is
+live.
 
 ---
 
