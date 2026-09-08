@@ -23,7 +23,6 @@ $25,459,824 in 12 swaps — into 212 buying wallets, while net flow read
 [![Demo video](https://img.shields.io/badge/▶️_2:45-Demo_video-FF0000?style=for-the-badge)](https://youtu.be/I1yOhXSutAk)
 [![Landing page](https://img.shields.io/badge/🐘_elephant.edycu.dev-Landing-0B0E14?style=for-the-badge)](https://elephant.edycu.dev)
 [![Pitch Deck](https://img.shields.io/badge/📊_Pitch-Deck-f59e0b?style=for-the-badge)](https://elephant.edycu.dev/pitch/)
-[![Live Run Receipt](https://img.shields.io/badge/🧾_Live_Run-Receipt-FFB020?style=for-the-badge)](DEMO.md)
 [![API Feedback](https://img.shields.io/badge/📮_CMC_API-Feedback-4C9AFF?style=for-the-badge)](FEEDBACK.md)
 [![BUIDL](https://img.shields.io/badge/🐘_BUIDL-48344-3861FB?style=for-the-badge)](https://dorahacks.io/buidl/48344)
 [![Built for Build with CMC](https://img.shields.io/badge/DoraHacks-Build_with_CMC-8b5cf6?style=for-the-badge)](https://dorahacks.io/hackathon/coinmarketcap-api-202609/detail)
@@ -188,10 +187,10 @@ Full derivation, including every failure mode and the deliberate non-architectur
 
 | Endpoint | Used for | Key? | Called from |
 |---|---|---|---|
-| `/public-api/v1/dex/tokens/transactions` | per-swap side, USD value, maker address — **the engine** | ❌ none | [`scripts/split_tape.py`](scripts/split_tape.py) |
-| `/public-api/v4/dex/spot-pairs/latest` | enumerating a token universe, to choose what to split | ❌ none | [`scripts/sweep_universe.py`](scripts/sweep_universe.py) |
-| `/public-api/v4/dex/pairs/quotes/latest` | evaluated and **rejected** — its `24h_buy_volume` / `24h_sell_volume` are the aggregates this project exists to argue against | ❌ none | *nothing — see below* |
-| `/v1/dex/holders/count` | how many addresses hold the token — context for the share | ❌ none | [`scripts/split_tape.py`](scripts/split_tape.py) |
+| `/public-api/v1/dex/tokens/transactions` | per-swap side, USD value, maker address — **the engine** | 🔓 none | [`scripts/split_tape.py`](scripts/split_tape.py) |
+| `/public-api/v4/dex/spot-pairs/latest` | enumerating a token universe, to choose what to split | 🔓 none | [`scripts/sweep_universe.py`](scripts/sweep_universe.py) |
+| `/public-api/v4/dex/pairs/quotes/latest` | evaluated and **rejected** — its `24h_buy_volume` / `24h_sell_volume` are the aggregates this project exists to argue against | 🔓 none | *nothing — see below* |
+| `/v1/dex/holders/count` | how many addresses hold the token — context for the share | 🔓 none | [`scripts/split_tape.py`](scripts/split_tape.py) |
 
 The one `Called from` gap is deliberate and worth stating plainly, because a table of endpoint
 names proves nothing on its own:
