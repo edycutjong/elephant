@@ -53,3 +53,11 @@ graphify-out/
 .coverage.*
 coverage.xml
 htmlcov/
+
+# docs/assets — only the images a page actually displays are tracked (whitelisted with !).
+# Anything else dropped here (Devpost gallery, YouTube thumbnail, dev.to cover, icon
+# PNG exports) is a submission-form upload, not repo content.
+/docs/assets/*
+!/docs/assets/icon.svg
+!/docs/assets/hero.svg
+!/docs/assets/architecture.png
