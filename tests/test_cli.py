@@ -504,3 +504,38 @@ def test_this_submission_has_no_placeholders_left_in_it(monkeypatch, capsys):
         runpy.run_path(str(SCRIPTS / "check_submission_readiness.py"), run_name="__main__")
     assert ex.value.code == 0, capsys.readouterr().out
     assert "clean — no unfilled addresses" in capsys.readouterr().out
+
+
+def test_a_sweep_asked_for_nothing_makes_no_call(monkeypatch):
+    monkeypatch.setattr(sweep_universe, "get", lambda path, **p: pytest.fail("called"))
+    assert sweep_universe.sweep_source(199, "uniswap-v3", per_source=0) == ([], None)
+
+
+def test_the_sweep_without_json_prints_the_universe_and_writes_nothing(
+    monkeypatch, capsys, tmp_path
+):
+    _unkeyed(monkeypatch)
+    monkeypatch.setattr(
+        sweep_universe,
+        "sweep_source",
+        lambda n, d, per_source: (
+            [{"symbol": "WETH", "address": "0xC02aaa", "platform": None}],
+            None,
+        ),
+    )
+    monkeypatch.chdir(tmp_path)
+    _argv(monkeypatch, "sweep_universe.py", "--per-source", "1")
+    sweep_universe.main()
+    out = capsys.readouterr().out
+    assert "split any of them:" in out and "wrote" not in out and not list(tmp_path.iterdir())
+
+
+def test_a_one_sided_capture_is_written_but_reports_no_split(monkeypatch, capsys, tmp_path):
+    _unkeyed(monkeypatch)
+    out_path = tmp_path / "seed_tape.json"
+    monkeypatch.setattr(seed, "OUT", out_path)
+    monkeypatch.setattr(seed, "pull_swaps", lambda *a, **k: ([_swap("buy", 5, "b0")], _meta()))
+    _argv(monkeypatch, "seed.py", "--address", "0xdead", "--symbol", "X")
+    seed.main()
+    assert json.loads(out_path.read_text())["split_at_capture"] is None
+    assert "at capture:" not in capsys.readouterr().out

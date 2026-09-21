@@ -10,7 +10,7 @@ install:  ## install dev deps + the chromium the browser QA gates drive
 lint:  ## ruff check + format check
 	ruff check . && ruff format --check .
 
-test:  ## pytest with coverage, offline only (no internet), gated at 100% of scripts/
+test:  ## pytest with coverage, offline only (no internet), statement + branch coverage gated at 100% of scripts/
 	pytest -q -m "not live" --cov=scripts --cov-report=term-missing --cov-fail-under=100
 
 test-live:  ## the live tests — hits the real CoinMarketCap API

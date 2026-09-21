@@ -13,4 +13,5 @@
 # harness. Neither number is aspirational: each is enforced where it can actually be measured.
 [run]
 concurrency = thread,greenlet
+branch = True
 omit = scripts/qa_site.py

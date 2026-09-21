@@ -21,3 +21,4 @@ markers = ["live: hits the real CoinMarketCap API"]
 # on a greenlet; without this the tracer loses every line executed after the first browser
 # call and reports a harness that demonstrably ran as unexecuted.
 concurrency = ["thread", "greenlet"]
+branch = true

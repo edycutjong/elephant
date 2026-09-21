@@ -270,3 +270,17 @@ def test_the_file_runs_through_its_main_guard_the_way_a_reader_invokes_it(
     )
     runpy.run_path(str(Path(base_rate.__file__)), run_name="__main__")
     assert "BASE RATE" in capsys.readouterr().out
+
+
+def test_a_quiet_run_measures_the_token_without_printing_its_line(monkeypatch, capsys):
+    monkeypatch.setattr(
+        base_rate,
+        "pull_swaps",
+        lambda a, p, pages: (
+            [{"tp": "buy", "v": "10", "ma": "0xa"}, {"tp": "sell", "v": "9", "ma": "0xb"}],
+            {"error": None, "pages": 1},
+        ),
+    )
+    rows, skipped = base_rate.measure([_token("X")], 1, verbose=False)
+    assert len(rows) == 1 and rows[0]["symbol"] == "X" and skipped == []
+    assert capsys.readouterr().out == ""

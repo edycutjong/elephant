@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Elephant Tracks — architecture</title>
+<meta name="description" content="Elephant Tracks architecture: two keyless CoinMarketCap endpoints feed a stdlib-only Python pipeline; one function is the product, one file is the receipt.">
+<link rel="icon" href="../assets/icon.svg" type="image/svg+xml">
+<style>
+@font-face{font-family:'Inter Tight';font-style:normal;font-weight:600 800;font-display:swap;src:url(../assets/fonts/inter-tight-latin-var.woff2) format('woff2');unicode-range:U+0020-007E, U+00B1, U+00B7, U+00D7, U+00F7, U+03A3, U+2014, U+2026, U+2192-2193, U+2197, U+2212, U+2248;}
+@font-face{font-family:'Inter';font-style:normal;font-weight:400 600;font-display:swap;src:url(../assets/fonts/inter-latin-var.woff2) format('woff2');unicode-range:U+0020-007E, U+00B1, U+00B7, U+00D7, U+00F7, U+03A3, U+2014, U+2026, U+2192-2193, U+2197, U+2212, U+2248;}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400 600;font-display:swap;src:url(../assets/fonts/jetbrains-mono-latin-var.woff2) format('woff2');unicode-range:U+0020-007E, U+00B1, U+00B7, U+00D7, U+00F7, U+03A3, U+2014, U+2026, U+2192-2193, U+2197, U+2212, U+2248;}
+</style>
+<style>
+/* ── design tokens (assets/_tokens.css) ── */
+/* Elephant Tracks — design tokens
+ * Every value traces to the Visual Thesis in ASSETS.md.
+ * Mechanism verb: "splits the tape".
+ * Frozen moment: a flat grey bar splits into one tall amber block and a scatter of small blue ones.
+ */
+
+:root {
+  /* ---- base ---- */
+  --bg:        #0B0E14;
+  --surface:   #141A24;
+  --border:    #243044;
+  --text:      #E6EDF3;
+  --muted:     #8B98A9;
+
+  /* ---- the only two data colours: there is one axis and it is size ---- */
+  --accent:    #FFB020;  /* amber */
+  --blue:      #4C9AFF;
+
+  /* ---- GATE 1e: state-named aliases. These carry the mechanism, not the palette ---- */
+  --elephant:  var(--accent);  /* state: one wallet, large ticket — the after-state that was hidden */
+  --herd:      var(--blue);    /* state: many wallets, small tickets — the other half of the split */
+  /* raised from #3A4657 after the contrast checker bit: at #3A4657 the bar was 1.98:1
+     on GitHub dark (#0d1117) and vanished inside the icon. #5E6C80 clears >=3:1 on
+     GitHub dark (3.54), GitHub light (5.34) and our own bg (3.62). */
+  --collapsed: #5E6C80;        /* state: the summed before, information destroyed */
+
+  /* ---- signal ---- */
+  --flag:      #FF5C5C;  /* net flow says balanced while the split says otherwise */
+
+  /* ---- type ---- */
+  --font-display: 'Inter Tight', 'Inter', system-ui, sans-serif;
+  --font-body:    'Inter', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+
+  /* tabular figures are mandatory: the two ticket numbers must align vertically
+     or the comparison the whole product exists to make does not read */
+  --num: 'tnum' 1, 'lnum' 1;
+
+  /* ---- scale ---- */
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 20px;
+  --gap:  24px;
+
+  /* ---- motion: one idea only — the split ---- */
+  --split-dur:  6s;     /* master duration; every animated file derives its marks from this */
+  --ease-split: cubic-bezier(.16,.84,.44,1);
+}
+
+/* Contrast floors (WCAG AA on --bg #0B0E14):
+   --text     #E6EDF3  ~15.8:1  PASS
+   --muted    #8B98A9   ~7.1:1  PASS
+   --elephant #FFB020   ~9.6:1  PASS
+   --herd     #4C9AFF   ~6.3:1  PASS
+   --collapsed#5E6C80   ~3.6:1  structural only — never used for text,
+                                but must clear 3:1 on GitHub light AND dark */
+
+/* ── utilities (assets/_asset-utilities.css) ── */
+/* Elephant Tracks — L2 asset pipeline utilities
+ * Consumed by every generate-*.html via <link>, never @import.
+ * All values derive from _tokens.css. Nothing here invents a colour.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Each generator body is exactly its export size — export.cjs sets a matching viewport. */
+.canvas {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 12% 0%, #16202E 0%, var(--bg) 62%),
+    var(--bg);
+  display: flex;
+}
+
+/* 48px inset safe box — OG/unfurl crops eat the outer band. */
+.safe { padding: 48px; }
+
+/* ---- the split: the one visual idea, shared by every surface ---- */
+.tape        { position: relative; display: flex; align-items: flex-end; gap: 6px; }
+.tape--flat  { align-items: center; }
+
+/* the summed before-state: one flat, information-destroying bar */
+.bar-collapsed {
+  background: var(--collapsed);
+  border-radius: 3px;
+  height: 10px;
+}
+
+/* the after-state: one tall amber block, many short blue ones */
+.blk            { border-radius: 3px; }
+.blk--elephant  { background: var(--elephant); }
+.blk--herd      { background: var(--herd); }
+
+/* ---- type ---- */
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 0.92;
+  color: var(--text);
+}
+.tagline  { color: var(--muted); font-weight: 500; }
+.metric   { font-family: var(--font-mono); font-feature-settings: var(--num); }
+.metric--elephant { color: var(--elephant); }
+.metric--herd     { color: var(--herd); }
+.label    { color: var(--muted); font-family: var(--font-mono); letter-spacing: .08em;
+            text-transform: uppercase; }
+
+/* dark scrim for text sitting over the radial glow — v8 requirement */
+.scrim {
+  position: relative;
+}
+.scrim::before {
+  content: "";
+  position: absolute;
+  inset: -16px -24px;
+  background: linear-gradient(90deg, rgba(11,14,20,.92) 0%, rgba(11,14,20,.72) 70%, transparent 100%);
+  z-index: -1;
+}
+
+/* pill row for stack badges */
+.pill {
+  display: inline-flex; align-items: center;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+
+/* the flag: net flow says balanced while the split says otherwise */
+.flag {
+  color: var(--flag);
+  border: 1px solid color-mix(in srgb, var(--flag) 45%, transparent);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-family: var(--font-mono);
+}
+
+/* ── the diagram (assets/generate-architecture.html) ── */
+
+  /* literal px — export.cjs sets a 1400x900 viewport */
+  .canvas { width: 1400px; height: 900px; flex-direction: column; }
+  .safe { padding: 44px 52px; }
+
+  .head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 4px; }
+  .head h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 34px;
+             letter-spacing: -.02em; }
+  .head .sub { font-family: var(--font-mono); font-size: 15px; color: var(--muted); }
+
+  .cols { display: grid; grid-template-columns: 300px 1fr 300px; gap: 26px; margin-top: 22px;
+          align-items: start; }
+
+  .colhead { font-family: var(--font-mono); font-size: 12px; letter-spacing: .12em;
+             text-transform: uppercase; color: var(--collapsed); margin-bottom: 12px; }
+
+  .box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+         padding: 13px 15px; }
+  .box + .box { margin-top: 10px; }
+  .box .fn { font-family: var(--font-mono); font-weight: 700; font-size: 16px; color: var(--text); }
+  .box .fn em { font-style: normal; color: var(--elephant); }
+  .box .d { font-size: 13px; color: var(--muted); line-height: 1.45; margin-top: 5px; }
+
+  /* the engine column: each stage names the shape it hands on */
+  .stage { position: relative; }
+  .flowlabel { font-family: var(--font-mono); font-size: 11.5px; color: var(--collapsed);
+               text-align: center; padding: 5px 0 4px; }
+  .flowlabel .ar { color: var(--border); margin-right: 7px; }
+
+  .box--product { border-color: var(--elephant); background: #1B1710;
+                  box-shadow: 0 0 0 1px rgba(255,176,32,.25); }
+  .box--product .d { color: #D9C9A8; }
+
+  .src { border-color: #2E3A4E; background: #101725; }
+  .src .fn { color: var(--herd); font-size: 14px; }
+  .src .k { font-family: var(--font-mono); font-size: 11.5px; color: var(--collapsed);
+            margin-top: 6px; }
+
+  .out .fn { color: var(--text); font-size: 14px; }
+  .note { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-top: 12px; }
+  .note b { color: var(--text); font-weight: 600; }
+
+  .side { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono);
+          font-size: 12px; color: var(--collapsed); margin: 10px 0 2px; }
+  .side::before, .side::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+  .foot { display: flex; justify-content: space-between; align-items: center; margin-top: auto;
+          padding-top: 18px; border-top: 1px solid var(--border);
+          font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+  .foot b { color: var(--elephant); font-weight: 700; }
+  .chips { display: flex; gap: 8px; }
+  .chip { border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px;
+          font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+
+/* ── page chrome: the 1400×900 canvas scales to the viewport, never scrolls sideways ── */
+html,body{min-height:100%}
+.page{padding:24px 0 40px}
+.pg-stage{width:min(1400px,100vw - 32px);margin:0 auto;overflow:hidden}
+.pg-frame{position:relative;width:1400px;height:900px;transform-origin:top left;border-radius:16px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.nav{width:min(1400px,100vw - 32px);margin:0 auto 14px;display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:space-between;align-items:center;font-family:var(--font-mono);font-size:13px;color:var(--muted)}
+.nav a{color:var(--accent,#F5A623);text-decoration:none;overflow-wrap:anywhere;min-width:0}
+.nav span{overflow-wrap:anywhere}
+.nav a:hover,.nav a:focus-visible{text-decoration:underline}
+.pg-foot{width:min(1400px,100vw - 32px);margin:18px auto 0;overflow-wrap:anywhere;font-family:var(--font-mono);font-size:13px;color:var(--muted);line-height:1.6}
+.pg-foot code{color:var(--text)}
+.pg-foot a{color:var(--accent,#F5A623)}
+</style>
+</head>
+<body class="page">
+<nav class="nav"><a href="../">← elephant.edycu.dev</a><span>architecture · rendered from <code>docs/assets/architecture.png</code>'s own source</span><a href="https://github.com/edycutjong/elephant/blob/main/ARCHITECTURE.md">ARCHITECTURE.md on GitHub →</a></nav>
+<div class="pg-stage"><div class="pg-frame" id="frame"><div class="canvas safe">
+
+  <div class="head">
+    <img src="../assets/icon.svg" alt="" width="38" height="38" style="border-radius:9px">
+    <h1>Elephant Tracks — architecture</h1>
+    <span class="sub">a single-pass aggregation over a paginated feed</span>
+  </div>
+
+  <div class="cols">
+
+    <!-- ── left: where the data comes from ───────────────────────────────── -->
+    <div>
+      <div class="colhead">CoinMarketCap &middot; keyless API</div>
+
+      <div class="box src">
+        <div class="fn">/v4/dex/spot-pairs/latest</div>
+        <div class="d">Pairs on one DEX on one network, by liquidity. The universe to choose from.</div>
+        <div class="k">per DEX · scroll_id on the envelope</div>
+      </div>
+
+      <div class="box src">
+        <div class="fn">/v1/dex/tokens/transactions</div>
+        <div class="d">Every swap with its side <b>tp</b>, USD value <b>v</b> and <b>maker address</b>. The three fields the product rests on.</div>
+        <div class="k">100/page · data.lastId · 0 credits</div>
+      </div>
+
+      <div class="note">
+        <b>No key on either.</b> Both sit on the keyless surface, so a clone runs with every
+        CMC variable unset and spends nothing.
+      </div>
+
+      <div class="side">rejected</div>
+      <div class="box">
+        <div class="fn" style="color:var(--collapsed)">/v4/dex/pairs/quotes/latest</div>
+        <div class="d">24h volume and count per side — the aggregates. At flat net flow the ticket ratio they give <em>is</em> the count ratio, so nothing calls it.</div>
+      </div>
+    </div>
+
+    <!-- ── middle: the engine ────────────────────────────────────────────── -->
+    <div>
+      <div class="colhead">scripts/ &middot; python 3.11, stdlib only</div>
+
+      <div class="box">
+        <div class="fn">sweep_universe.py</div>
+        <div class="d">Optional, upstream: enumerate tokens, then pick one. Answers “what is worth splitting?”, not “what is the split?”.</div>
+      </div>
+      <div class="flowlabel"><span class="ar">↓</span>one token address</div>
+
+      <div class="box">
+        <div class="fn">get()</div>
+        <div class="d">One GET. Backoff on 429/5xx; errors <b>returned</b>, never swallowed; an exhausted quota exits 75, not 1.</div>
+      </div>
+      <div class="flowlabel"><span class="ar">↓</span>raw JSON</div>
+
+      <div class="box">
+        <div class="fn">pull_swaps()</div>
+        <div class="d">Paginate on the envelope’s <b>data.lastId</b>, de-duplicate on <b>(tx, lgid)</b>, stop on a stall.</div>
+      </div>
+      <div class="flowlabel"><span class="ar">↓</span>list[swap]</div>
+
+      <div class="box box--product">
+        <div class="fn"><em>split()</em> — the product</div>
+        <div class="d">Partition on <b>tp</b>. Per side: Σ<b>v</b> per <b>ma</b> → the top wallet’s share of that side. Also mean ticket, distinct makers, net flow — net flow computed only so it can be shown losing.</div>
+      </div>
+      <div class="flowlabel"><span class="ar">↓</span>row</div>
+
+      <div class="box">
+        <div class="fn">_confidence()</div>
+        <div class="d">Is this row’s ratio meaningful at all? Dust floor and a minimum of 5 swaps per side. A failing row still prints, with its reason.</div>
+      </div>
+      <div class="flowlabel"><span class="ar">↓</span>row + confidence</div>
+
+      <div class="box">
+        <div class="fn">main()</div>
+        <div class="d">Rank by the <b>published</b> hero rule: highest top-maker share of either side among rows reading balanced (|net flow| &lt; 5%).</div>
+      </div>
+    </div>
+
+    <!-- ── right: what comes out ─────────────────────────────────────────── -->
+    <div>
+      <div class="colhead">out</div>
+
+      <div class="box out">
+        <div class="fn">stdout — the table</div>
+        <div class="d">One row per token, the hero block beneath it, and the wallet address behind the number.</div>
+      </div>
+
+      <div class="box out">
+        <div class="fn">docs/proof/*.json</div>
+        <div class="d">The receipt: endpoint, auth, capture time, credits, the rule, and the raw swaps behind the top maker — so the number can be re-derived by hand.</div>
+      </div>
+
+      <div class="side">build-time only</div>
+
+      <div class="box out">
+        <div class="fn">render_site.py</div>
+        <div class="d">Reads those receipts and writes the landing page, the deck and JUDGE.md. <b>--check</b> fails CI if a published number ever drifts from its receipt.</div>
+      </div>
+
+      <div class="note">
+        <b>Why the page is a snapshot.</b> CoinMarketCap sends no
+        <span style="font-family:var(--font-mono)">Access-Control-Allow-Origin</span>, so no browser
+        can call it. The web surface carries dated numbers; the live capability is the CLI.
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>No server &middot; no database &middot; no cache &middot; no model &middot; <b>no runtime dependencies</b></span>
+    <span class="chips">
+      <span class="chip">python 3.11</span>
+      <span class="chip">stdlib only</span>
+      <span class="chip">keyless</span>
+      <span class="chip">115 tests</span>
+    </span>
+  </div>
+
+</div></div></div>
+<p class="pg-foot">Two keyless CoinMarketCap endpoints, one stdlib-only Python pipeline, one function that is the product and one file that is the receipt. The full derivation, every failure mode and the deliberate non-architecture: <a href="https://github.com/edycutjong/elephant/blob/main/ARCHITECTURE.md">ARCHITECTURE.md</a>. The same picture as a file: <a href="https://github.com/edycutjong/elephant/blob/main/docs/assets/architecture.png">docs/assets/architecture.png</a>.</p>
+<script>
+(function(){var f=document.getElementById('frame'),s=f.parentNode;function fit(){var w=s.clientWidth,k=Math.min(1,w/1400);f.style.transform='scale('+k+')';s.style.height=(900*k)+'px';}fit();addEventListener('resize',fit);})();
+</script>
+</body>
+</html>

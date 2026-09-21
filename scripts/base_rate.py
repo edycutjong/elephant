@@ -162,9 +162,8 @@ def main():
         )
         print(f"  median top-maker share among balanced tokens: {median * 100:.1f}%")
         print("\n  distribution of the top maker's share, among balanced tokens:")
-        for k, v in dist.items():
-            if v is not None:
-                print(f"    {k:>4}  {v * 100:5.1f}%")
+        for k, v in dist.items():  # every value is set: `rate` is set, so `shares` is not empty
+            print(f"    {k:>4}  {v * 100:5.1f}%")
     else:
         print("\n  no token read balanced in this window — the rate is undefined, not zero.")
 
