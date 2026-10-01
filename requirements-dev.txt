@@ -7,6 +7,6 @@ hypothesis>=6.167.1
 # package — `python3 -m playwright install chromium`, which `make install` runs. Without it
 # those tests skip rather than fail, and coverage of scripts/qa_site.py drops with them.
 playwright>=1.57.0
-pillow>=11.1.0
+pillow>=11.3.0
 numpy>=1.26.4
 fonttools[woff]>=4.55
